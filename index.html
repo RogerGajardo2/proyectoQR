@@ -179,6 +179,10 @@
                 );
                 
                 if (userChoice) {
+                    // Abrir Gmail web
+                    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.open(gmailUrl, '_blank');
+                } else {
                     // Copiar email al portapapeles
                     navigator.clipboard.writeText(email).then(() => {
                         alert(`Email copiado al portapapeles: ${email}\n\nAsunto sugerido: ${subject}`);
@@ -186,10 +190,6 @@
                         // Fallback si no se puede copiar
                         alert(`Email: ${email}\n\nAsunto: ${subject}\n\nMensaje: ${body}`);
                     });
-                } else {
-                    // Abrir Gmail web
-                    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                    window.open(gmailUrl, '_blank');
                 }
             }, 1000);
         }
