@@ -102,7 +102,13 @@
         }
         
         .instagram { background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); }
+        .facebook { background: #1877f2; }
+        .twitter { background: #1da1f2; }
+        .linkedin { background: #0077b5; }
+        .youtube { background: #ff0000; }
+        .tiktok { background: #000000; }
         .whatsapp { background: #25d366; }
+        .website { background: #667eea; }
         .email { background: #ea4335; }
         
         .instagram, .facebook, .twitter, .linkedin, .youtube, .tiktok, .whatsapp, .website, .email {
@@ -149,6 +155,45 @@
             }
         }
     </style>
+    <script>
+        function sendEmail() {
+            const email = 'Contacto@proconing.cl';
+            const subject = 'Consulta desde QR';
+            const body = 'Hola, me interesa conocer más sobre sus servicios de construcción e ingeniería.';
+            
+            // Intentar mailto primero
+            const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            // Crear un enlace temporal y hacer clic
+            const tempLink = document.createElement('a');
+            tempLink.href = mailtoLink;
+            tempLink.click();
+            
+            // Si no funciona, mostrar alternativas
+            setTimeout(() => {
+                const userChoice = confirm(
+                    '¿No se abrió tu cliente de correo?\n\n' +
+                    'Opciones:\n' +
+                    '• OK: Copiar email al portapapeles\n' +
+                    '• Cancelar: Abrir Gmail web'
+                );
+                
+                if (userChoice) {
+                    // Copiar email al portapapeles
+                    navigator.clipboard.writeText(email).then(() => {
+                        alert(`Email copiado al portapapeles: ${email}\n\nAsunto sugerido: ${subject}`);
+                    }).catch(() => {
+                        // Fallback si no se puede copiar
+                        alert(`Email: ${email}\n\nAsunto: ${subject}\n\nMensaje: ${body}`);
+                    });
+                } else {
+                    // Abrir Gmail web
+                    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.open(gmailUrl, '_blank');
+                }
+            }, 1000);
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -175,7 +220,7 @@
                 <span class="social-text">WhatsApp</span>
             </a>
 
-            <a href="mailto:Contacto@proconing.cl?subject=Consulta desde QR&body=Hola, me interesa conocer más sobre sus servicios de construcción e ingeniería." class="social-link email" target="_blank">
+            <a href="#" onclick="sendEmail()" class="social-link email">
                 <div class="social-icon">📧</div>
                 <span class="social-text">Enviar Correo</span>
             </a>
