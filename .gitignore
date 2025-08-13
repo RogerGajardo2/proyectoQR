@@ -1,0 +1,42 @@
+# ---------------------------------
+# Node / Frontend (Vite + React)
+# Evita subir dependencias y artefactos de build
+# ---------------------------------
+
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Builds y caches
+.dist/
+dist/
+build/
+.vite/
+.cache/
+coverage/
+
+# Archivos de entorno (confidenciales)
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Herramientas de despliegue locales
+.vercel/
+.netlify/
+
+# Archivos temporales
+*.local
+*.tmp
+*.swp
