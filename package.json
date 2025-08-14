@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:gh": "vite preview --base /proyectoQR/ --strictPort --port 4174 --open /proyectoQR/"
   },
   "dependencies": {
     "react": "^18.3.1",
