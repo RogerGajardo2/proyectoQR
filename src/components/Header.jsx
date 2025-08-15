@@ -34,20 +34,34 @@ export default function Header() {
           <img src={import.meta.env.BASE_URL + 'resources/logo.png'} alt="ProconIng" className="w-10 h-10"/>
           <span className="text-title tracking-wider font-medium">ProconIng</span>
         </button>
+        {/* Desktop */}
         <nav className="hidden md:flex items-center gap-3">
           <button type="button" className={linkCls} onClick={() => go('inicio')}>Inicio</button>
           <button type="button" className={linkCls} onClick={() => go('proyectos')}>Proyectos</button>
           <button type="button" className={linkCls} onClick={() => go('quienes-somos')}>Quiénes somos</button>
           <button type="button" className={linkCls} onClick={() => go('contacto')}>Contáctanos</button>
         </nav>
+        {/* Hamburguesa */}
         <button type="button" className="relative md:hidden w-10 h-10" aria-expanded={open} aria-controls="primary-nav" aria-label={open ? 'Cerrar menú' : 'Abrir menú'} onClick={() => setOpen(v => !v)}>
           <span className={`absolute left-2 right-2 top-3 h-0.5 bg-title transition ${open ? 'rotate-45 translate-y-2' : ''}`} />
           <span className={`absolute left-2 right-2 top-1/2 -mt-0.5 h-0.5 bg-title transition ${open ? 'opacity-0' : ''}`} />
           <span className={`absolute left-2 right-2 bottom-3 h-0.5 bg-title transition ${open ? '-rotate-45 -translate-y-2' : ''}`} />
         </button>
       </div>
-      <nav id="primary-nav" className={`md:hidden fixed left-0 right-0 top-[var(--nav-h)] bg-white border-b border-line px-5 py-3 transition-transform ${open ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="container flex flex-col">
+
+      {/* Backdrop para mobile */}
+      <button
+        aria-hidden
+        onClick={() => setOpen(false)}
+        className={`md:hidden fixed inset-0 top-[var(--nav-h)] bg-black/30 transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      />
+
+      {/* Menú móvil: desliza desde la derecha hacia el centro */}
+      <nav
+        id="primary-nav"
+        className={`md:hidden fixed top-[var(--nav-h)] bottom-0 right-0 w-[85vw] max-w-sm bg-white border-l border-line shadow-2xl transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}
+      >
+        <div className="h-full flex flex-col px-5 py-6">
           <button type="button" className={`${linkCls} text-left`} onClick={() => { go('inicio'); setOpen(false) }}>Inicio</button>
           <button type="button" className={`${linkCls} text-left`} onClick={() => { go('proyectos'); setOpen(false) }}>Proyectos</button>
           <button type="button" className={`${linkCls} text-left`} onClick={() => { go('quienes-somos'); setOpen(false) }}>Quiénes somos</button>
