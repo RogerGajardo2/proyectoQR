@@ -9,10 +9,3 @@ html,body,#root{height:100%}
 .reveal{opacity:0;transform:translateX(-24px);transition:opacity .6s ease,transform .6s ease}
 .reveal-in{opacity:1;transform:none}
 .btn-gold{border:1px solid var(--subtitle)}
-
-/* Fondo responsive para ProfileCard */
-.profile-bg{background-repeat:repeat;background-position:top left;background-size:400px 400px}
-@media (max-width: 767px){
-  /* En mobile: 3 columnas x ~5 filas */
-  .profile-bg{background-size:33.333vw 20vh}
-}

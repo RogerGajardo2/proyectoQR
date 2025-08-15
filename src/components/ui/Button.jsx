@@ -1,7 +1,5 @@
 import { Link } from 'react-router-dom'
-
 const sizes = { sm: 'px-2 py-2 text-sm', md: 'px-5 py-3', lg: 'px-6 py-3 text-lg' }
-
 export default function Button({ to, onClick, type='button', variant='solid', rounded='full', size='md', className='', children, ...rest }){
   const isLink = variant === 'link'
   const base = 'inline-flex items-center gap-2 font-bold'

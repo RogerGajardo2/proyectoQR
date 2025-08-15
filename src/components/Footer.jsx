@@ -20,23 +20,14 @@ export default function Footer(){
     const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     const a = document.createElement('a'); a.href = mailto; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove()
     setTimeout(async () => {
-      const ok = window.confirm(`¿No se abrió tu cliente de correo?
-
-Podemos abrir una ventana emergente (Gmail). Si lo deseas debes Aceptar.
-
-Aceptar: Abrir Gmail web
-Cancelar: Copiar email y asunto`)
+      const ok = window.confirm(`¿No se abrió tu cliente de correo?\n\nPodemos abrir una ventana emergente (Gmail). Si lo deseas debes Aceptar.\n\nAceptar: Abrir Gmail web\nCancelar: Copiar email y asunto`)
       if (ok){
         alert('Se abrirá una ventana emergente con Gmail. Si tu navegador la bloquea, permite la ventana para continuar.')
         const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
         try { window.open(gmail, '_blank', 'noopener') } catch {}
       } else {
-        try { await navigator.clipboard.writeText(`${email} — Asunto: ${subject}`); alert(`Email copiado: ${email}
-Asunto: ${subject}`) }
-        catch { alert(`Email: ${email}
-Asunto: ${subject}
-
-Mensaje sugerido: ${body}`) }
+        try { await navigator.clipboard.writeText(`${email} — Asunto: ${subject}`); alert(`Email copiado: ${email}\nAsunto: ${subject}`) }
+        catch { alert(`Email: ${email}\nAsunto: ${subject}\n\nMensaje sugerido: ${body}`) }
       }
     }, 600)
   }
