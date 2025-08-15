@@ -36,7 +36,7 @@ export default function Footer(){
     <footer className="fixed bottom-0 inset-x-0 z-40 border-t border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="container py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-title/70">
-          <img src={import.meta.env.BASE_URL + 'resources/logo.png'} alt="ProconIng" className="w-6 h-6"/>
+          <img src={import.meta.env.BASE_URL + 'resources/profile-pic1.png'} alt="ProconIng" className="w-6 h-6"/>
           <span>© {new Date().getFullYear()} ProconIng</span>
         </div>
         <div className="flex items-center gap-2">

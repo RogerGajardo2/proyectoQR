@@ -32,7 +32,7 @@ export default function Header() {
     <header className={`fixed top-0 inset-x-0 z-50 h-[var(--nav-h)] border-b border-line ${headerBg} transition-transform duration-300 ${show ? 'translate-y-0' : '-translate-y-full'}`}>
       <div className="container h-full flex items-center justify-between gap-4">
         <button type="button" onClick={() => go('inicio')} aria-label="Ir al inicio" className="flex items-center gap-2">
-          <img src={import.meta.env.BASE_URL + 'resources/logo.png'} alt="ProconIng" className="w-10 h-10"/>
+          <img src={import.meta.env.BASE_URL + 'resources/profile-pic1.png'} alt="ProconIng" className="w-10 h-10"/>
           <span className="text-title tracking-wider font-medium">ProconIng</span>
         </button>
         <nav className="hidden md:flex items-center gap-3">
@@ -54,11 +54,13 @@ export default function Header() {
         className={`md:hidden fixed inset-0 top-[var(--nav-h)] bg-black/35 transition-opacity z-[55] ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       />
 
+      {/* Drawer móvil: fondo blanco sólido garantizado */}
       <nav
         id="primary-nav"
-        className={`md:hidden fixed top-[var(--nav-h)] bottom-0 right-0 w-1/2 min-w-[300px] bg-white border-l border-line shadow-2xl transition-transform duration-300 z-[60] isolate ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`md:hidden fixed top-[var(--nav-h)] bottom-0 right-0 w-1/2 min-w-[300px] bg-white bg-opacity-100 border-l border-line shadow-2xl transition-transform duration-300 z-[60] isolate ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ backgroundColor: '#ffffff', WebkitBackdropFilter: 'none', backdropFilter: 'none' }}
       >
-        <div className="h-full flex flex-col px-6 py-8 space-y-8">
+        <div className="h-full flex flex-col px-6 py-10 space-y-8">
           <button type="button" className={`${linkCls} text-left text-lg py-3`} onClick={() => { go('inicio'); setOpen(false) }}>Inicio</button>
           <button type="button" className={`${linkCls} text-left text-lg py-3`} onClick={() => { go('proyectos'); setOpen(false) }}>Proyectos</button>
           <button type="button" className={`${linkCls} text-left text-lg py-3`} onClick={() => { go('quienes-somos'); setOpen(false) }}>Quiénes somos</button>

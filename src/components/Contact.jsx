@@ -45,7 +45,7 @@ export default function Contact(){
               <input id="phone" name="phone" type="tel" placeholder="+56 9 1234 5678" className="w-full px-4 py-3 rounded-xl border border-line" />
               <label className="font-semibold text-title" htmlFor="message">Mensaje</label>
               <textarea id="message" name="message" placeholder="Cuéntanos brevemente tu necesidad" required className="min-h-[120px] w-full px-4 py-3 rounded-xl border border-line" />
-              <Button type="submit" disabled={status.type==='loading'}>
+              <Button type="submit" disabled={status.type==='loading'} className="mt-2 justify-self-center">
                 {status.type==='loading' ? 'Enviando…' : 'Enviar'}
               </Button>
               <div className={`text-sm ${status.type==='error'?'text-red-600':status.type==='ok'?'text-subtitle':'text-text'}`}>{status.msg}</div>
