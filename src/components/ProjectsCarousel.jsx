@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 const slidesData = [
-  { img: 'https://images.unsplash.com/photo-1502005229762-cf1b2da7c3f5?q=80&w=1600&auto=format&fit=crop', caption: 'Casa Los Robles · 320 m² · 2024' },
   { img: 'https://images.unsplash.com/photo-1501183638710-841dd1904471?q=80&w=1600&auto=format&fit=crop', caption: 'Oficinas Centro · 12.000 m² · 2023' },
   { img: 'https://images.unsplash.com/photo-1494526585095-c41746248156?q=80&w=1600&auto=format&fit=crop', caption: 'Interior Patagonia · 180 m² · 2025' }
 ]

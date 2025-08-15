@@ -7,8 +7,7 @@ export default function Hero(){
     <section id="inicio" className="relative min-h-[calc(100svh-var(--nav-h))] grid place-items-center overflow-hidden scroll-mt-24">
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden>
         <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
-          <source src="/videos/hero.webm" type="video/webm" />
-          <source src="/videos/hero.mp4" type="video/mp4" />
+          <source src="/public/resources/proconing_hero_bg_5s.webm" type="video/webm" />
         </video>
       </div>
       <div className="absolute inset-0 z-0 bg-gradient-to-t from-white/10 via-white/20 to-transparent pointer-events-none"/>

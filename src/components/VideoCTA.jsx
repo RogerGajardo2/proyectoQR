@@ -6,7 +6,7 @@ export default function VideoCTA(){
     <section className="relative min-h-[60vh] grid place-items-center overflow-hidden bg-alt">
       <div className="absolute inset-0 -z-10 pointer-events-none" aria-hidden>
         <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
-          <source src="https://cdn.coverr.co/videos/coverr-architectural-plans-3526/1080p.mp4" type="video/mp4" />
+          <source src="C:\Users\Roger\Desktop\ProyectoQR David\proyectoQR\public\resources\proconing_hero_bg_5s.webm" type="video/mp4" />
         </video>
       </div>
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/35 to-black/30 pointer-events-none"/>
