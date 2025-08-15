@@ -59,14 +59,14 @@ export default function Header() {
         id="primary-nav"
         className={`md:hidden fixed top-[var(--nav-h)] right-0 w-1/2 min-w-[300px] border-l border-line shadow-2xl transition-transform duration-300 z-[60] no-glass ${open ? 'translate-x-0' : 'translate-x-full'}`}
         style={{ 
-          height: 'calc(100vh - var(--nav-h) - 68px)',
+          height: 'calc(100vh - var(--nav-h) - 5px)',
           backgroundColor: '#ffffff !important',
           backdropFilter: 'none !important',
           WebkitBackdropFilter: 'none !important',
           transform: open ? 'translateX(0)' : 'translateX(100%)'
         }}
       >
-        <div className="h-full flex flex-col px-6 py-10 space-y-8 overflow-y-auto" 
+        <div className="h-full flex flex-col px-6 py-10 space-y-8 overflow-y-auto no-glass" 
              style={{ 
                backgroundColor: '#ffffff !important',
                backdropFilter: 'none !important',
