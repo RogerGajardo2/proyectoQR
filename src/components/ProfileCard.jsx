@@ -1,57 +1,26 @@
 import { Link } from 'react-router-dom'
 import { useEffect } from 'react'
+
 export default function ProfileCard(){
   useEffect(() => {
-    const meta = document.createElement('meta'); meta.name = 'robots'; meta.content = 'noindex, nofollow'; document.head.appendChild(meta)
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta)
     return () => { try { document.head.removeChild(meta) } catch {} }
   }, [])
 
   const email = 'Contacto@proconing.cl'
   const subject = 'Consulta desde QR'
   const body = 'Hola, me interesa conocer más sobre sus servicios.'
-  const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-
-  function openMailDefault(){
-    const ok = window.confirm('¿Deseas abrir tu correo predeterminado para enviarnos un mensaje?')
-    if (ok){
-      const a = document.createElement('a'); a.href = mailto; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove()
-    }
-  }
 
   function sendEmail(e){
     e.preventDefault()
-    const isDesktop = window.matchMedia('(pointer:fine)').matches && window.innerWidth >= 1024
-    if (isDesktop) { openMailDefault(); return }
-    const a = document.createElement('a'); a.href = mailto; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove()
-    setTimeout(async () => {
-      const ok = window.confirm(`¿No se abrió tu cliente de correo?
-
-Podemos abrir una ventana emergente (Gmail). Si lo deseas debes Aceptar.
-
-Aceptar: Abrir Gmail web
-Cancelar: Copiar email y asunto`)
-      if (ok){
-        alert('Se abrirá una ventana emergente con Gmail. Si tu navegador la bloquea, permite la ventana para continuar.')
-        const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-        try { window.open(gmail, '_blank', 'noopener') } catch {}
-      } else {
-        try { await navigator.clipboard.writeText(`${email} — Asunto: ${subject}`); alert(`Email copiado: ${email}
-Asunto: ${subject}`) }
-        catch { alert(`Email: ${email}
-Asunto: ${subject}
-
-Mensaje sugerido: ${body}`) }
-      }
-    }, 600)
+    const ok = window.confirm('¿Abrir Gmail en una ventana nueva para enviar un correo?')
+    if (!ok) return
+    const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    try { window.open(gmail, '_blank', 'noopener,noreferrer') } catch {}
   }
-
-  useEffect(() => {
-    const isDesktop = window.matchMedia('(pointer:fine)').matches && window.innerWidth >= 1024
-    if (isDesktop && !sessionStorage.getItem('pc_auto_mail_once')){
-      sessionStorage.setItem('pc_auto_mail_once','1')
-      setTimeout(openMailDefault, 400)
-    }
-  }, [])
 
   const tiles = Array.from({ length: 16 })
   return (
