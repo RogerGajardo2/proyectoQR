@@ -34,28 +34,41 @@ Mensaje sugerido: ${body}`) }
     }, 800)
   }
   return (
-    <section className="relative min-h-[calc(100svh-var(--nav-h))] grid place-items-center py-10">
-      <div className="fixed inset-0 -z-10 opacity-50" aria-hidden style={{ backgroundImage: 'url(' + import.meta.env.BASE_URL + 'resources/profile-pic1.png)', backgroundRepeat: 'repeat', backgroundSize: '400px 400px' }} />
+    <section className="relative min-h-[calc(100svh-var(--nav-h))] grid place-items-center py-6 md:py-10">
+      {/* Fondo: en mobile 3 logos a lo ancho y ~5 a lo alto */}
+      <div
+        className="fixed inset-0 -z-10 opacity-45"
+        aria-hidden
+        style={{
+          backgroundImage: 'url(' + import.meta.env.BASE_URL + 'resources/profile-pic1.png)',
+          backgroundRepeat: 'repeat',
+          backgroundPosition: 'top left',
+          // 3 columnas (33.333vw cada una) x 5 filas (~20vh cada una)
+          backgroundSize: '33.333vw 20vh'
+        }}
+      />
       <div className="container">
-        <div className="mx-auto max-w-[420px] text-center rounded-2xl p-8 shadow-[0_25px_50px_rgba(0,0,0,0.4)] bg-title backdrop-blur-xl border border-white/10">
-          <div className="w-28 h-28 mx-auto mb-5 rounded-full border-4" style={{ borderColor: 'rgb(250, 214, 8)', backgroundImage: 'url(' + import.meta.env.BASE_URL + 'resources/profile-pic.jpg)', backgroundSize:'cover', backgroundPosition:'center' }} />
-          <h1 className="text-white text-2xl font-bold">Procon Ingenierias SPA</h1>
-          <p className="text-neutral-200 mt-2 leading-relaxed">📬Contacto@proconing.cl<br/>🏗️Construcción integral<br/>⚖️Diseños únicos y personalizados en Chile</p>
-          <div className="mt-6 flex flex-col gap-3">
-            <a href="https://www.instagram.com/procon.ing?igsh=MTV6OWljNjZjYmRlcQ%3D%3D&utm_source=qr" target="_blank" rel="noreferrer" className="flex items-center gap-3 px-5 py-3 rounded-xl text-white shadow-soft btn-gold" style={{ background: 'linear-gradient(45deg,#f09433,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)' }}>
-              <span className="text-xl">📷</span><span className="font-semibold text-left grow">Instagram</span>
+        {/* Tarjeta más pequeña en mobile para dejar ver el fondo */}
+        <div className="mx-auto max-w-[320px] md:max-w-[420px] text-center rounded-2xl p-5 md:p-8 shadow-[0_22px_44px_rgba(0,0,0,0.38)] bg-title backdrop-blur-xl border border-white/10">
+          <div className="w-16 h-16 md:w-24 md:h-24 mx-auto mb-4 md:mb-5 rounded-full border-2 md:border-4"
+               style={{ borderColor: 'rgb(250, 214, 8)', backgroundImage: 'url(' + import.meta.env.BASE_URL + 'resources/profile-pic.jpg)', backgroundSize:'cover', backgroundPosition:'center' }} />
+          <h1 className="text-white text-lg md:text-2xl font-semibold">Procon Ingenierias SPA</h1>
+          <p className="text-neutral-200 mt-2 text-xs md:text-sm leading-relaxed">📬Contacto@proconing.cl<br/>🏗️Construcción integral<br/>⚖️Diseños únicos y personalizados en Chile</p>
+          <div className="mt-4 md:mt-6 flex flex-col gap-2 md:gap-3">
+            <a href="https://www.instagram.com/procon.ing?igsh=MTV6OWljNjZjYmRlcQ%3D%3D&utm_source=qr" target="_blank" rel="noreferrer" className="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-xl text-white shadow-soft btn-gold text-sm md:text-base" style={{ background: 'linear-gradient(45deg,#f09433,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)' }}>
+              <span className="text-lg md:text-xl">📷</span><span className="font-semibold text-left grow">Instagram</span>
             </a>
-            <a href="https://wa.me/56973495086" target="_blank" rel="noreferrer" className="flex items-center gap-3 px-5 py-3 rounded-xl text-white shadow-soft bg-[#25d366]">
-              <span className="text-xl">💬</span><span className="font-semibold text-left grow">WhatsApp</span>
+            <a href="https://wa.me/56973495086" target="_blank" rel="noreferrer" className="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-xl text-white shadow-soft bg-[#25d366] text-sm md:text-base">
+              <span className="text-lg md:text-xl">💬</span><span className="font-semibold text-left grow">WhatsApp</span>
             </a>
-            <a href="#enviar-correo" onClick={sendEmail} className="flex items-center gap-3 px-5 py-3 rounded-xl text-white shadow-soft bg-[#00CED1]">
-              <span className="text-xl">📧</span><span className="font-semibold text-left grow">Enviar Correo</span>
+            <a href="#enviar-correo" onClick={sendEmail} className="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-xl text-white shadow-soft bg-[#00CED1] text-sm md:text-base">
+              <span className="text-lg md:text-xl">📧</span><span className="font-semibold text-left grow">Enviar Correo</span>
             </a>
-            <Link to="/inicio?to=inicio" className="flex items-center gap-3 px-5 py-3 rounded-xl bg-white text-title shadow-soft btn-gold hover:bg-alt">
-              <span className="text-xl">🏠</span><span className="font-semibold text-left grow">Mi web</span>
+            <Link to="/inicio?to=inicio" className="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-xl bg-white text-title shadow-soft btn-gold hover:bg-alt text-sm md:text-base">
+              <span className="text-lg md:text-xl">🏠</span><span className="font-semibold text-left grow">Mi web</span>
             </Link>
           </div>
-          <div className="mt-6 pt-4 border-t border-white/20 text-neutral-300 text-sm">Procon Ingenierias Spa</div>
+          <div className="mt-4 md:mt-6 pt-3 border-t border-white/20 text-neutral-300 text-[11px] md:text-sm">Procon Ingenierias Spa</div>
         </div>
       </div>
     </section>

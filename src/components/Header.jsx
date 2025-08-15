@@ -56,7 +56,7 @@ export default function Header() {
         className={`md:hidden fixed inset-0 top-[var(--nav-h)] bg-black/30 transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       />
 
-      {/* Menú móvil: desliza desde la derecha hacia el centro */}
+      {/* Menú móvil: drawer desde la derecha */}
       <nav
         id="primary-nav"
         className={`md:hidden fixed top-[var(--nav-h)] bottom-0 right-0 w-[85vw] max-w-sm bg-white border-l border-line shadow-2xl transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}
