@@ -9,3 +9,8 @@ html,body,#root{height:100%}
 .reveal{opacity:0;transform:translateX(-24px);transition:opacity .6s ease,transform .6s ease}
 .reveal-in{opacity:1;transform:none}
 .btn-gold{border:1px solid var(--subtitle)}
+.no-glass {
+  background-color: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}

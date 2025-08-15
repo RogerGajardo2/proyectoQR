@@ -33,7 +33,8 @@ export default function Contact(){
           </div>
           <p className="hidden md:block">Escríbenos y te responderemos a la brevedad.</p>
         </div>
-        <div className="grid md:grid-cols-[1.2fr_.8fr] gap-6">
+        {/* En escritorio el cuadro de datos ahora va ABAJO del formulario; en móvil queda igual (columna única) */}
+        <div className="grid grid-cols-1 gap-6">
           <div className="bg-white border border-line rounded-2xl p-5 shadow-soft" data-reveal>
             <form onSubmit={onSubmit} className="grid gap-3" autoComplete="on">
               <input type="text" name="botcheck" className="sr-only" tabIndex="-1" aria-hidden="true" />
@@ -45,17 +46,18 @@ export default function Contact(){
               <input id="phone" name="phone" type="tel" placeholder="+56 9 1234 5678" className="w-full px-4 py-3 rounded-xl border border-line" />
               <label className="font-semibold text-title" htmlFor="message">Mensaje</label>
               <textarea id="message" name="message" placeholder="Cuéntanos brevemente tu necesidad" required className="min-h-[120px] w-full px-4 py-3 rounded-xl border border-line" />
-              <Button type="submit" disabled={status.type==='loading'} className="mt-2 justify-self-center">
+              <Button type="submit" disabled={status.type==='loading'} className="mt-2 w-full justify-center rounded-xl">
                 {status.type==='loading' ? 'Enviando…' : 'Enviar'}
               </Button>
               <div className={`text-sm ${status.type==='error'?'text-red-600':status.type==='ok'?'text-subtitle':'text-text'}`}>{status.msg}</div>
             </form>
           </div>
+
+          {/* Cuadro de datos reducido: solo correo y teléfono (sin ubicación) */}
           <aside className="bg-white border border-line rounded-2xl p-5 shadow-soft grid gap-3" data-reveal>
             <h3 className="text-title text-xl font-bold">Datos</h3>
             <div className="flex items-center gap-3"><span>📧</span><a href="mailto:contacto@proconing.cl">contacto@proconing.cl</a></div>
             <div className="flex items-center gap-3"><span>📱</span><a href="tel:+56912345678">+56 9 1234 5678</a></div>
-            <div className="flex items-center gap-3"><span>📍</span><span>Chile</span></div>
           </aside>
         </div>
       </div>

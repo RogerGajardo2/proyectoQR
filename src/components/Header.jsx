@@ -26,7 +26,7 @@ export default function Header() {
   }, [])
 
   const linkCls = 'tracking-wider font-medium text-title hover:opacity-70 transition'
-  const headerBg = open ? 'bg-white' : 'bg-white md:glass'
+  const headerBg = 'bg-white md:glass'
 
   return (
     <header className={`fixed top-0 inset-x-0 z-50 h-[var(--nav-h)] border-b border-line ${headerBg} transition-transform duration-300 ${show ? 'translate-y-0' : '-translate-y-full'}`}>
@@ -54,13 +54,24 @@ export default function Header() {
         className={`md:hidden fixed inset-0 top-[var(--nav-h)] bg-black/35 transition-opacity z-[55] ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       />
 
-      {/* Drawer móvil: fondo blanco sólido garantizado */}
+      {/* Drawer móvil: Desde header hasta antes del footer con fondo blanco forzado */}
       <nav
         id="primary-nav"
-        className={`md:hidden fixed top-[var(--nav-h)] bottom-0 right-0 w-1/2 min-w-[300px] bg-white bg-opacity-100 border-l border-line shadow-2xl transition-transform duration-300 z-[60] isolate ${open ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{ backgroundColor: '#ffffff', WebkitBackdropFilter: 'none', backdropFilter: 'none' }}
+        className={`md:hidden fixed top-[var(--nav-h)] right-0 w-1/2 min-w-[300px] border-l border-line shadow-2xl transition-transform duration-300 z-[60] no-glass ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ 
+          height: 'calc(100vh - var(--nav-h) - 68px)',
+          backgroundColor: '#ffffff !important',
+          backdropFilter: 'none !important',
+          WebkitBackdropFilter: 'none !important',
+          transform: open ? 'translateX(0)' : 'translateX(100%)'
+        }}
       >
-        <div className="h-full flex flex-col px-6 py-10 space-y-8">
+        <div className="h-full flex flex-col px-6 py-10 space-y-8 overflow-y-auto" 
+             style={{ 
+               backgroundColor: '#ffffff !important',
+               backdropFilter: 'none !important',
+               WebkitBackdropFilter: 'none !important'
+             }}>
           <button type="button" className={`${linkCls} text-left text-lg py-3`} onClick={() => { go('inicio'); setOpen(false) }}>Inicio</button>
           <button type="button" className={`${linkCls} text-left text-lg py-3`} onClick={() => { go('proyectos'); setOpen(false) }}>Proyectos</button>
           <button type="button" className={`${linkCls} text-left text-lg py-3`} onClick={() => { go('quienes-somos'); setOpen(false) }}>Quiénes somos</button>
