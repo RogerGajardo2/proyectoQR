@@ -1,6 +1,5 @@
 import Button from './ui/Button'
 import { useGoToSection } from '../hooks/useGoToSection'
-
 export default function VideoCTA(){
   const go = useGoToSection()
   return (

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-
+import Button from './ui/Button'
 export default function Contact(){
   const [status, setStatus] = useState({ type: 'idle', msg: '' })
   async function onSubmit(e){
@@ -45,7 +45,9 @@ export default function Contact(){
               <input id="phone" name="phone" type="tel" placeholder="+56 9 1234 5678" className="w-full px-4 py-3 rounded-xl border border-line" />
               <label className="font-semibold text-title" htmlFor="message">Mensaje</label>
               <textarea id="message" name="message" placeholder="Cuéntanos brevemente tu necesidad" required className="min-h-[120px] w-full px-4 py-3 rounded-xl border border-line" />
-              <button type="submit" className="inline-flex items-center justify-center bg-title text-white font-bold rounded-full btn-gold shadow-soft px-6 py-3 disabled:opacity-70">{status.type === 'loading' ? 'Enviando…' : 'Enviar'}</button>
+              <Button type="submit" disabled={status.type==='loading'}>
+                {status.type==='loading' ? 'Enviando…' : 'Enviar'}
+              </Button>
               <div className={`text-sm ${status.type==='error'?'text-red-600':status.type==='ok'?'text-subtitle':'text-text'}`}>{status.msg}</div>
             </form>
           </div>

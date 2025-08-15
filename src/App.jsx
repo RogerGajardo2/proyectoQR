@@ -37,7 +37,7 @@ export default function App(){
   return (
     <div className="min-h-screen">
       {showLandingFrame && <Header />}
-      <main className={showLandingFrame ? 'pb-20' : ''}>
+      <main className={showLandingFrame ? 'pt-[var(--nav-h)] pb-20' : ''}>
         <Routes>
           <Route path="/" element={<ProfileCard />} />
           <Route path="/inicio" element={<Landing />} />

@@ -1,24 +1,17 @@
 import { Link } from 'react-router-dom'
 import { useEffect } from 'react'
-
 export default function ProfileCard(){
   useEffect(() => {
-    const meta = document.createElement('meta')
-    meta.name = 'robots'
-    meta.content = 'noindex, nofollow'
-    document.head.appendChild(meta)
+    const meta = document.createElement('meta'); meta.name = 'robots'; meta.content = 'noindex, nofollow'; document.head.appendChild(meta)
     return () => { try { document.head.removeChild(meta) } catch {} }
   }, [])
-
   function sendEmail(e){
     e.preventDefault()
     const email = 'Contacto@proconing.cl'
     const subject = 'Consulta desde QR'
     const body = 'Hola, me interesa conocer más sobre sus servicios.'
-
     const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     const a = document.createElement('a'); a.href = mailto; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove()
-
     setTimeout(async () => {
       const ok = window.confirm(`¿No se abrió tu cliente de correo?
 
@@ -40,7 +33,6 @@ Mensaje sugerido: ${body}`) }
       }
     }, 800)
   }
-
   return (
     <section className="relative min-h-[calc(100svh-var(--nav-h))] grid place-items-center py-10">
       <div className="fixed inset-0 -z-10 opacity-50" aria-hidden style={{ backgroundImage: 'url(' + import.meta.env.BASE_URL + 'resources/profile-pic1.png)', backgroundRepeat: 'repeat', backgroundSize: '400px 400px' }} />

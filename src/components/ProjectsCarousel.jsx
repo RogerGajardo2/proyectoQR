@@ -1,20 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-
 const slidesData = [
   { img: 'https://images.unsplash.com/photo-1502005229762-cf1b2da7c3f5?q=80&w=1600&auto=format&fit=crop', caption: 'Casa Los Robles · 320 m² · 2024' },
   { img: 'https://images.unsplash.com/photo-1501183638710-841dd1904471?q=80&w=1600&auto=format&fit=crop', caption: 'Oficinas Centro · 12.000 m² · 2023' },
   { img: 'https://images.unsplash.com/photo-1494526585095-c41746248156?q=80&w=1600&auto=format&fit=crop', caption: 'Interior Patagonia · 180 m² · 2025' }
 ]
-
 export default function ProjectsCarousel(){
   const [idx, setIdx] = useState(0)
   const trackRef = useRef(null)
   const timer = useRef(null)
   const goTo = (i) => setIdx((i + slidesData.length) % slidesData.length)
-
   useEffect(() => { if (trackRef.current) trackRef.current.style.transform = `translateX(-${idx * 100}%)` }, [idx])
   useEffect(() => { const s=()=>timer.current=setInterval(()=>goTo(idx+1),6000); const x=()=>clearInterval(timer.current); s(); return x }, [idx])
-
   return (
     <section id="proyectos" className="py-16 bg-alt scroll-mt-24">
       <div className="container">
@@ -25,7 +21,6 @@ export default function ProjectsCarousel(){
           </div>
           <p className="hidden md:block">Calidad constructiva, eficiencia y diseño, en cada etapa.</p>
         </div>
-
         <div className="relative overflow-hidden rounded-2xl shadow-soft bg-white" data-reveal>
           <div ref={trackRef} className="flex transition-transform duration-500 ease-out">
             {slidesData.map((s, i) => (
