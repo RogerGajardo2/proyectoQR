@@ -1,38 +1,53 @@
 import { useState, useEffect } from 'react'
-import Button from './ui/Button'
 import { useGoToSection } from '../hooks/useGoToSection'
 
-export default function Header(){
-  const [open, setOpen] = useState(false)
+export default function Header() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [visible, setVisible] = useState(true)
   const go = useGoToSection()
-  useEffect(() => { const onResize=()=>{ if(window.innerWidth>900) setOpen(false)}; window.addEventListener('resize',onResize); return ()=>window.removeEventListener('resize',onResize)},[])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const inicio = document.getElementById('inicio')
+      if (!inicio) return
+      const rect = inicio.getBoundingClientRect()
+      setVisible(rect.top >= -50 && rect.bottom > 50)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-[var(--nav-h)] border-b border-line glass">
-      <div className="container h-full flex items-center justify-between gap-4">
-        <button onClick={() => go('inicio')} className="flex items-center gap-2 font-bold text-title" aria-label="Inicio">
-          <img src={import.meta.env.BASE_URL + 'resources/logo.png'} alt="ProconIng" className="w-10 h-10"/>
-          <span>ProconIng</span>
+    <header
+      className={`fixed top-0 left-0 w-full z-50 bg-white transition-opacity duration-300 ${
+        visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      }`}
+    >
+      <div className="container mx-auto flex items-center justify-between p-4">
+        <img
+          src={`${import.meta.env.BASE_URL}resources/logo.png`}
+          alt="ProconIng"
+          className="h-10 w-auto"
+        />
+        <button
+          className="md:hidden text-gray-700 tracking-wider font-medium"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          ☰
         </button>
-        <nav className="hidden md:flex items-center gap-1">
-          <Button rounded="none" size="sm" variant="link" onClick={()=>go('inicio')}>Inicio</Button>
-          <Button rounded="none" size="sm" variant="link" onClick={()=>go('proyectos')}>Proyectos</Button>
-          <Button rounded="none" size="sm" variant="link" onClick={()=>go('quienes-somos')}>Quiénes somos</Button>
-          <Button rounded="none" size="sm" variant="link" onClick={()=>go('contacto')}>Contáctanos</Button>
+        <nav
+          className={`${
+            isOpen ? 'block' : 'hidden'
+          } absolute top-full left-0 w-full bg-white shadow-md md:static md:block md:w-auto md:shadow-none`}
+        >
+          <ul className="flex flex-col md:flex-row gap-4 p-4 md:p-0 tracking-wider text-gray-700 font-medium">
+            <li><button onClick={() => go('inicio')}>Inicio</button></li>
+            <li><button onClick={() => go('proyectos')}>Proyectos</button></li>
+            <li><button onClick={() => go('quienes')}>Quiénes Somos</button></li>
+            <li><button onClick={() => go('contacto')}>Contáctanos</button></li>
+          </ul>
         </nav>
-        <button className="relative md:hidden w-10 h-10" aria-expanded={open} aria-controls="primary-nav" aria-label={open?'Cerrar menú':'Abrir menú'} onClick={()=>setOpen(v=>!v)}>
-          <span className="absolute left-2 right-2 top-3 h-0.5 bg-title transition"/>
-          <span className="absolute left-2 right-2 top-1/2 -mt-0.5 h-0.5 bg-title transition"/>
-          <span className="absolute left-2 right-2 bottom-3 h-0.5 bg-title transition"/>
-        </button>
       </div>
-      <nav id="primary-nav" className={`md:hidden fixed left-0 right-0 top-[var(--nav-h)] bg-white border-b border-line px-5 py-3 transition-transform ${open?'translate-y-0':'-translate-y-full'}`}>
-        <div className="container flex flex-col gap-1">
-          <Button rounded="none" size="sm" variant="link" className="text-left" onClick={()=>{go('inicio');setOpen(false)}}>Inicio</Button>
-          <Button rounded="none" size="sm" variant="link" className="text-left" onClick={()=>{go('proyectos');setOpen(false)}}>Proyectos</Button>
-          <Button rounded="none" size="sm" variant="link" className="text-left" onClick={()=>{go('quienes-somos');setOpen(false)}}>Quiénes somos</Button>
-          <Button rounded="none" size="sm" variant="link" className="text-left" onClick={()=>{go('contacto');setOpen(false)}}>Contáctanos</Button>
-        </div>
-      </nav>
     </header>
   )
 }
