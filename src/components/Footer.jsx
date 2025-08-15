@@ -12,38 +12,33 @@ const IconUser = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.2" stroke="currentColor" strokeWidth="2"/><path d="M6 19a6 6 0 0 1 12 0" stroke="currentColor" strokeWidth="2" fill="none"/></svg>
 )
 export default function Footer(){
+  const email = 'Contacto@proconing.cl'
+  const subject = 'Consulta desde la web'
+  const body = 'Hola, me interesa conocer más sobre sus servicios.'
+  const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+
+  function isMobile(){
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia('(pointer:coarse)').matches
+  }
+
   function sendEmail(e){
     e.preventDefault()
-    const email = 'Contacto@proconing.cl'
-    const subject = 'Consulta desde la web'
-    const body = 'Hola, me interesa conocer más sobre sus servicios.'
-    const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-    const a = document.createElement('a'); a.href = mailto; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove()
-    setTimeout(async () => {
-      const ok = window.confirm(`¿No se abrió tu cliente de correo?\n\nPodemos abrir una ventana emergente (Gmail). Si lo deseas debes Aceptar.\n\nAceptar: Abrir Gmail web\nCancelar: Copiar email y asunto`)
-      if (ok){
-        alert('Se abrirá una ventana emergente con Gmail. Si tu navegador la bloquea, permite la ventana para continuar.')
-        const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-        try { window.open(gmail, '_blank', 'noopener') } catch {}
-      } else {
-        try { await navigator.clipboard.writeText(`${email} — Asunto: ${subject}`); alert(`Email copiado: ${email}\nAsunto: ${subject}`) }
-        catch { alert(`Email: ${email}\nAsunto: ${subject}\n\nMensaje sugerido: ${body}`) }
-      }
-    }, 600)
+    if (isMobile()){
+      try { window.location.href = mailto } catch { const a=document.createElement('a'); a.href=mailto; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove() }
+      return
+    }
+    const ok = window.confirm('¿Abrir Gmail en una ventana nueva para enviar un correo?')
+    if (!ok) return
+    const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    try { window.open(gmail, '_blank', 'noopener') } catch {}
   }
+
   const circle = 'w-11 h-11 grid place-items-center rounded-full border btn-gold bg-white text-title shadow-soft transition hover:bg-title hover:text-white'
   return (
-    <footer className="fixed bottom-0 inset-x-0 z-[9999] border-t border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 no-glass" 
-            style={{ 
-              zIndex: 9999,
-              position: 'fixed',
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)'
-            }}>
+    <footer className="fixed bottom-0 inset-x-0 z-40 border-t border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="container py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-title/70">
-          <img src={import.meta.env.BASE_URL + 'resources/profile-pic1.png'} alt="ProconIng" className="w-6 h-6"/>
+          <img src={import.meta.env.BASE_URL + 'resources/logo.png'} alt="ProconIng" className="w-6 h-6"/>
           <span>© {new Date().getFullYear()} ProconIng</span>
         </div>
         <div className="flex items-center gap-2">

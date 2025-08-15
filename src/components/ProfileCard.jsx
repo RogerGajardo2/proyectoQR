@@ -13,9 +13,18 @@ export default function ProfileCard(){
   const email = 'Contacto@proconing.cl'
   const subject = 'Consulta desde QR'
   const body = 'Hola, me interesa conocer más sobre sus servicios.'
+  const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+
+  function isMobile(){
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia('(pointer:coarse)').matches
+  }
 
   function sendEmail(e){
     e.preventDefault()
+    if (isMobile()){
+      try { window.location.href = mailto } catch { const a=document.createElement('a'); a.href=mailto; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove() }
+      return
+    }
     const ok = window.confirm('¿Abrir Gmail en una ventana nueva para enviar un correo?')
     if (!ok) return
     const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
