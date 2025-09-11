@@ -44,7 +44,7 @@ export default function App(){
         <Routes>
           <Route path="/" element={<ProfileCard />} />
           <Route path="/inicio" element={<Landing />} />
-          <Route path="/inicio/proyecto-oficinas-centro" element={<ProjectDetail />} />
+          <Route path="/inicio/proyecto-casa-1" element={<ProjectDetail />} />
           <Route path="/inicio/proyecto-interior-patagonia" element={<ProjectDetail />} />
           <Route path="/perfil" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

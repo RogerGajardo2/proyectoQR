@@ -9,8 +9,8 @@ const getProjectImage = (project, image) => {
 }
 
 const projectsData = {
-  'oficinas-centro': {
-    title: 'Oficinas Centro',
+  'casa-1': {
+    title: 'Casa',
     subtitle: '12.000 m² · 2023',
     description: 'Proyecto de construcción integral para oficinas corporativas en el centro de la ciudad. Diseño moderno y funcional que maximiza el aprovechamiento del espacio disponible, incorporando tecnologías sustentables y espacios colaborativos que fomentan la productividad.',
     features: [
@@ -23,21 +23,22 @@ const projectsData = {
       'Terraza verde en último piso'
     ],
     images: [
-      getProjectImage('oficinas-centro', 'main.jpg'),
-      getProjectImage('oficinas-centro', 'fachada.jpg'),
-      getProjectImage('oficinas-centro', 'espacios.jpg')
+      getProjectImage('casa-1', 'main.jpg'),
+      getProjectImage('casa-1', 'fachada.jpg'),
+      getProjectImage('casa-1', 'espacios.jpg'),
+      getProjectImage('casa-1', 'sala.jpg')
     ],
     gallery: [
       { 
-        img: getProjectImage('oficinas-centro', 'fachada.jpg'), 
+        img: getProjectImage('casa-1', 'fachada.jpg'), 
         caption: 'Fachada principal' 
       },
       { 
-        img: getProjectImage('oficinas-centro', 'espacios.jpg'), 
+        img: getProjectImage('casa-1', 'espacios.jpg'), 
         caption: 'Espacios de trabajo' 
       },
       { 
-        img: getProjectImage('oficinas-centro', 'salas.jpg'), 
+        img: getProjectImage('casa-1', 'sala.jpg'), 
         caption: 'Salas de reuniones' 
       }
     ]

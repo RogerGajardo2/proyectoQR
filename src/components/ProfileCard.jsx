@@ -71,25 +71,25 @@ export default function ProfileCard(){
       </div>
       
       <div className="container">
-        <div className="mx-auto max-w-[320px] md:max-w-[560px] text-center rounded-2xl p-5 md:p-10 shadow-[0_22px_44px_rgba(0,0,0,0.38)] md:shadow-[0_25px_50px_rgba(0,0,0,0.4)] bg-title backdrop-blur-xl border border-white/10">
-          <div className="w-14 h-14 md:w-32 md:h-32 mx-auto mb-4 md:mb-6 rounded-full border-2 md:border-4" style={{ borderColor: 'rgb(250, 214, 8)', backgroundImage: 'url(' + import.meta.env.BASE_URL + 'resources/profile-pic.jpg)', backgroundSize:'cover', backgroundPosition:'center' }} />
-          <h1 className="text-white text-base md:text-2xl font-semibold">Procon Ingenierias SPA</h1>
-          <p className="text-neutral-200 mt-2 text-xs md:text-base leading-relaxed">📬Contacto@proconing.cl<br/>🏗️Construcción integral<br/>⚖️Diseños únicos y personalizados en Chile</p>
-          <div className="mt-3 md:mt-6 flex flex-col gap-2 md:gap-3">
-            <a href="https://www.instagram.com/procon.ing?igsh=MTV6OWljNjZjYmRlcQ%3D%3D&utm_source=qr" target="_blank" rel="noreferrer" className="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-xl text-white shadow-soft btn-gold text-sm md:text-base" style={{ background: 'linear-gradient(45deg,#f09433,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)' }}>
+        <div className="mx-auto max-w-[320px] md:max-w-[560px] text-center rounded-2xl p-8 py-12 md:p-10 shadow-[0_22px_44px_rgba(0,0,0,0.38)] md:shadow-[0_25px_50px_rgba(0,0,0,0.4)] bg-title backdrop-blur-xl border border-white/10">
+          <div className="w-16 h-16 md:w-32 md:h-32 mx-auto mb-6 md:mb-6 rounded-full border-2 md:border-4" style={{ borderColor: 'rgb(250, 214, 8)', backgroundImage: 'url(' + import.meta.env.BASE_URL + 'resources/profile-pic.jpg)', backgroundSize:'cover', backgroundPosition:'center' }} />
+          <h1 className="text-white text-lg md:text-2xl font-semibold">Procon Ingenierias SPA</h1>
+          <p className="text-neutral-200 mt-4 text-sm md:text-base leading-relaxed">📬Contacto@proconing.cl<br/>🏗️Construcción integral<br/>⚖️Diseños únicos y personalizados en Chile</p>
+          <div className="mt-8 md:mt-6 flex flex-col gap-3 md:gap-3">
+            <a href="https://www.instagram.com/procon.ing?igsh=MTV6OWljNjZjYmRlcQ%3D%3D&utm_source=qr" target="_blank" rel="noreferrer" className="flex items-center gap-3 px-4 py-3 md:px-5 md:py-3 rounded-xl text-white shadow-soft btn-gold text-sm md:text-base" style={{ background: 'linear-gradient(45deg,#f09433,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)' }}>
               <span className="text-lg md:text-xl">📷</span><span className="font-semibold text-left grow">Instagram</span>
             </a>
-            <a href="https://wa.me/56973495086" target="_blank" rel="noreferrer" className="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-xl text-white shadow-soft bg-[#25d366] text-sm md:text-base">
+            <a href="https://wa.me/56973495086" target="_blank" rel="noreferrer" className="flex items-center gap-3 px-4 py-3 md:px-5 md:py-3 rounded-xl text-white shadow-soft bg-[#25d366] text-sm md:text-base">
               <span className="text-lg md:text-xl">💬</span><span className="font-semibold text-left grow">WhatsApp</span>
             </a>
-            <a href="#enviar-correo" onClick={sendEmail} className="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-xl text-white shadow-soft bg-[#00CED1] text-sm md:text-base">
+            <a href="#enviar-correo" onClick={sendEmail} className="flex items-center gap-3 px-4 py-3 md:px-5 md:py-3 rounded-xl text-white shadow-soft bg-[#00CED1] text-sm md:text-base">
               <span className="text-lg md:text-xl">📧</span><span className="font-semibold text-left grow">Enviar Correo</span>
             </a>
-            <Link to="/inicio?to=inicio" className="flex items-center gap-3 px-3 py-2 md:px-5 md:py-3 rounded-xl bg-white text-title shadow-soft btn-gold hover:bg-alt text-sm md:text-base">
+            <Link to="/inicio?to=inicio" className="flex items-center gap-3 px-4 py-3 md:px-5 md:py-3 rounded-xl bg-white text-title shadow-soft btn-gold hover:bg-alt text-sm md:text-base">
               <span className="text-lg md:text-xl">🏠</span><span className="font-semibold text-left grow">Mi web</span>
             </Link>
           </div>
-          <div className="mt-3 md:mt-6 pt-3 border-t border-white/20 text-neutral-300 text-[11px] md:text-sm">Procon Ingenierias Spa</div>
+          <div className="mt-8 md:mt-6 pt-4 border-t border-white/20 text-neutral-300 text-xs md:text-sm">Procon Ingenierias Spa</div>
         </div>
       </div>
     </section>

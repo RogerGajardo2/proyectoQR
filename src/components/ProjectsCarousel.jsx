@@ -3,10 +3,10 @@ import { useGoToSection } from '../hooks/useGoToSection'
 
 const slidesData = [
   { 
-    img: `${import.meta.env.BASE_URL}resources/projects/oficinas-centro/main.jpg`, 
-    caption: 'Oficinas Centro · 12.000 m² · 2023',
-    id: 'oficinas-centro',
-    title: 'Oficinas Centro'
+    img: `${import.meta.env.BASE_URL}resources/projects/casa-1/main.jpg`, 
+    caption: 'Casa · 12.000 m² · 2023',
+    id: 'casa-1',
+    title: 'Casa'
   },
   { 
     img: `${import.meta.env.BASE_URL}resources/projects/interior-patagonia/main.jpg`, 
