@@ -9,6 +9,7 @@ import Contact from './components/Contact'
 import Footer from './components/Footer'
 import ScrollUp from './components/ScrollUp'
 import ProfileCard from './components/ProfileCard'
+import ProjectDetail from './components/ProjectDetail'
 import { useReveal } from './hooks/useReveal'
 
 function Landing(){
@@ -34,19 +35,23 @@ export default function App(){
   useReveal('[data-reveal]')
   const location = useLocation()
   const showLandingFrame = location.pathname.startsWith('/inicio')
+  const isProjectDetail = location.pathname.includes('proyecto-')
+  
   return (
     <div className="min-h-screen">
-      {showLandingFrame && <Header />}
-      <main className={showLandingFrame ? 'pt-[var(--nav-h)] pb-20' : ''}>
+      {(showLandingFrame || isProjectDetail) && <Header />}
+      <main className={(showLandingFrame || isProjectDetail) ? 'pt-[var(--nav-h)] pb-20' : ''}>
         <Routes>
           <Route path="/" element={<ProfileCard />} />
           <Route path="/inicio" element={<Landing />} />
+          <Route path="/inicio/proyecto-oficinas-centro" element={<ProjectDetail />} />
+          <Route path="/inicio/proyecto-interior-patagonia" element={<ProjectDetail />} />
           <Route path="/perfil" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      {showLandingFrame && <Footer />}
-      {showLandingFrame && <ScrollUp />}
+      {(showLandingFrame || isProjectDetail) && <Footer />}
+      {(showLandingFrame || isProjectDetail) && <ScrollUp />}
     </div>
   )
 }
