@@ -1,12 +1,40 @@
+import { useRef, useEffect } from 'react'
 import Button from './ui/Button'
 import { useGoToSection } from '../hooks/useGoToSection'
 
 export default function Hero(){
   const go = useGoToSection()
+  const videoRef = useRef(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const handleTimeUpdate = () => {
+      // Cuando el video llega al segundo 19, reiniciarlo desde el principio
+      if (video.currentTime >= 19) {
+        video.currentTime = 0
+      }
+    }
+
+    video.addEventListener('timeupdate', handleTimeUpdate)
+
+    // Cleanup
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate)
+    }
+  }, [])
+
   return (
     <section id="inicio" className="relative min-h-[80vh] grid place-items-center overflow-hidden scroll-mt-24">
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden>
-        <video className="w-full h-full object-cover" autoPlay muted loop playsInline>
+        <video 
+          ref={videoRef}
+          className="w-full h-full object-cover" 
+          autoPlay 
+          muted 
+          playsInline
+        >
           <source src={`${import.meta.env.BASE_URL}resources/proconing_hero_bg_5s.webm`} type="video/webm" />
           <source src={`${import.meta.env.BASE_URL}resources/proconing_hero_bg_5s.mp4`} type="video/mp4" />
         </video>

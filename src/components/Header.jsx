@@ -32,7 +32,7 @@ export default function Header() {
     <header className={`fixed top-0 inset-x-0 z-50 h-[var(--nav-h)] border-b border-line ${headerBg} transition-transform duration-300 ${show ? 'translate-y-0' : '-translate-y-full'}`}>
       <div className="container h-full flex items-center justify-between gap-4">
         <button type="button" onClick={() => go('inicio')} aria-label="Ir al inicio" className="flex items-center gap-2">
-          <img src={import.meta.env.BASE_URL + 'resources/logo.png'} alt="ProconIng" className="w-10 h-10"/>
+          <img src={import.meta.env.BASE_URL + 'resources/logo.png'} alt="ProconIng" className="w-24 h-24"/>
           <span className="text-title tracking-wider font-medium">ProconIng</span>
         </button>
         <nav className="hidden md:flex items-center gap-3">

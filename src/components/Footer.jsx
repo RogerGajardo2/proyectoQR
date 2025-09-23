@@ -45,7 +45,7 @@ export default function Footer(){
             }}>
       <div className="container py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-title/70">
-          <img src={import.meta.env.BASE_URL + 'resources/logo.png'} alt="ProconIng" className="w-6 h-6"/>
+          {/**<img src={import.meta.env.BASE_URL + 'resources/logo.png'} alt="ProconIng" className="w-24 h-24"/>**/}
           <span>© {new Date().getFullYear()} ProconIng</span>
         </div>
         <div className="flex items-center gap-2">
