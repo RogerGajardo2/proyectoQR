@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Button from './ui/Button'
 import { getCarouselSlides } from '../data/projectsData'
 
 // Componente para cada slide del carrusel
@@ -18,13 +19,14 @@ const CarouselSlide = ({ slide, onProjectClick }) => (
     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/50 transition-all duration-300" />
     
     {/* Botón central para ver el proyecto */}
-    <button 
+    <Button 
       onClick={() => onProjectClick(slide.id)}
+      variant="outline"
       className="project-button"
       aria-label={`Ver proyecto ${slide.title}`}
     >
       Ver Proyecto
-    </button>
+    </Button>
     
     {/* Caption del proyecto */}
     <div className="carousel-caption absolute left-0 bottom-0">

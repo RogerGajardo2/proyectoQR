@@ -2,7 +2,7 @@
 const BASE_URL = import.meta.env.BASE_URL || '';
 
 export const getProjectImage = (projectId, imageNumber) => {
-  return `${BASE_URL}resources/projects/${projectId}/${imageNumber}.jpg`;
+  return `${BASE_URL}resources/projects/${projectId}/${imageNumber}.webp`;
 };
 
 export const createProject = (id, projectConfig = {}) => {

@@ -321,25 +321,13 @@ export default function ProjectDetail() {
               <Button onClick={handleContactClick} size="lg">
                 Solicitar cotización gratuita
               </Button>
-              <button
-                onClick={handleBackToProjects} 
-                className="px-6 py-3 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 shadow-soft hover:shadow-lg"
-                style={{
-                  border: '2px solid var(--subtitle)',
-                  color: 'var(--subtitle)',
-                  backgroundColor: 'transparent'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = 'var(--subtitle)'
-                  e.target.style.color = 'white'
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'transparent'
-                  e.target.style.color = 'var(--subtitle)'
-                }}
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={handleBackToProjects}
               >
                 Ver más proyectos
-              </button>
+              </Button>
             </div>
           </div>
         </div>
