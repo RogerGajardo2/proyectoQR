@@ -1,96 +1,225 @@
-import { useEffect, useRef, useState } from 'react'
-import { useGoToSection } from '../hooks/useGoToSection'
+// src/components/ProjectsCarousel.jsx (VERSIÓN SIMPLIFICADA)
 
-const slidesData = [
-  { 
-    img: `${import.meta.env.BASE_URL}resources/projects/casa-1/main.jpg`, 
-    caption: 'Casa · 12.000 m² · 2023',
-    id: 'casa-1',
-    title: 'Casa'
-  },
-  { 
-    img: `${import.meta.env.BASE_URL}resources/projects/interior-patagonia/main.jpg`, 
-    caption: 'Interior Patagonia · 180 m² · 2025',
-    id: 'interior-patagonia',
-    title: 'Interior Patagonia'
-  }
-]
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { getCarouselSlides } from '../data/projectsData'
 
-export default function ProjectsCarousel(){
-  const [idx, setIdx] = useState(0)
+// Componente para cada slide del carrusel
+const CarouselSlide = ({ slide, onProjectClick }) => (
+  <div className="carousel-slide group">
+    <img 
+      className="carousel-image" 
+      src={slide.img} 
+      alt={slide.caption}
+      loading="lazy"
+    />
+    
+    {/* Overlay oscuro al hacer hover */}
+    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/50 transition-all duration-300" />
+    
+    {/* Botón central para ver el proyecto */}
+    <button 
+      onClick={() => onProjectClick(slide.id)}
+      className="project-button"
+      aria-label={`Ver proyecto ${slide.title}`}
+    >
+      Ver Proyecto
+    </button>
+    
+    {/* Caption del proyecto */}
+    <div className="carousel-caption absolute left-0 bottom-0">
+      {slide.caption}
+    </div>
+  </div>
+)
+
+// Componente para botones de navegación
+const NavigationButton = ({ direction, onClick, ariaLabel }) => (
+  <button 
+    onClick={onClick}
+    aria-label={ariaLabel}
+    className={`carousel-nav-button ${direction}`}
+  >
+    {direction === 'left' ? '‹' : '›'}
+  </button>
+)
+
+// Componente para indicadores de navegación
+const NavigationDots = ({ slides, currentIndex, onDotClick }) => (
+  <div className="absolute inset-x-0 -bottom-2 pb-5 flex justify-center gap-2 z-20">
+    {slides.map((_, i) => (
+      <button 
+        key={i}
+        onClick={() => onDotClick(i)}
+        aria-label={`Ir a slide ${i + 1}`}
+        className={`carousel-indicator ${i === currentIndex ? 'active' : ''}`}
+      />
+    ))}
+  </div>
+)
+
+export default function ProjectsCarousel() {
+  const [currentIndex, setCurrentIndex] = useState(0)
   const trackRef = useRef(null)
-  const timer = useRef(null)
-  const go = useGoToSection()
+  const timerRef = useRef(null)
+  const navigate = useNavigate()
   
-  const goTo = (i) => setIdx((i + slidesData.length) % slidesData.length)
+  // Obtener slides de manera optimizada y memoizada
+  const slides = useMemo(() => getCarouselSlides(), [])
   
-  const handleProjectClick = (projectId) => {
-    // Navegar a la página de detalle del proyecto
-    go(`proyecto-${projectId}`)
+  // Función para navegar a un índice específico
+  const goToSlide = useCallback((index) => {
+    const normalizedIndex = ((index % slides.length) + slides.length) % slides.length
+    setCurrentIndex(normalizedIndex)
+  }, [slides.length])
+  
+  // Función para manejar clic en proyecto
+  const handleProjectClick = useCallback((projectId) => {
+    navigate(`/inicio/proyecto-${projectId}`)
+  }, [navigate])
+  
+  // Funciones de navegación memoizadas
+  const goToPrevious = useCallback(() => {
+    goToSlide(currentIndex - 1)
+  }, [currentIndex, goToSlide])
+  
+  const goToNext = useCallback(() => {
+    goToSlide(currentIndex + 1)
+  }, [currentIndex, goToSlide])
+  
+  // Efecto para actualizar la transformación del track
+  useEffect(() => {
+    if (trackRef.current) {
+      trackRef.current.style.transform = `translateX(-${currentIndex * 100}%)`
+    }
+  }, [currentIndex])
+  
+  // Efecto para el auto-play del carrusel
+  useEffect(() => {
+    const startTimer = () => {
+      timerRef.current = setInterval(() => {
+        goToSlide(currentIndex + 1)
+      }, 6000)
+    }
+    
+    const clearTimer = () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+    
+    startTimer()
+    return clearTimer
+  }, [currentIndex, goToSlide])
+  
+  // Manejar pausa del auto-play al hacer hover
+  const handleMouseEnter = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+    }
+  }, [])
+  
+  const handleMouseLeave = useCallback(() => {
+    timerRef.current = setInterval(() => {
+      goToSlide(currentIndex + 1)
+    }, 6000)
+  }, [currentIndex, goToSlide])
+  
+  // Manejar navegación por teclado
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      switch (e.key) {
+        case 'ArrowLeft':
+          goToPrevious()
+          break
+        case 'ArrowRight':
+          goToNext()
+          break
+        default:
+          break
+      }
+    }
+    
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [goToPrevious, goToNext])
+  
+  if (!slides.length) {
+    return (
+      <section id="proyectos" className="py-16 bg-alt scroll-mt-24">
+        <div className="container">
+          <div className="text-center py-16">
+            <p className="text-text">No hay proyectos disponibles</p>
+          </div>
+        </div>
+      </section>
+    )
   }
-  
-  useEffect(() => { 
-    if (trackRef.current) trackRef.current.style.transform = `translateX(-${idx * 100}%)` 
-  }, [idx])
-  
-  useEffect(() => { 
-    const s=()=>timer.current=setInterval(()=>goTo(idx+1),6000)
-    const x=()=>clearInterval(timer.current)
-    s()
-    return x 
-  }, [idx])
   
   return (
     <section id="proyectos" className="py-16 bg-alt scroll-mt-24">
       <div className="container">
+        {/* Header de la sección */}
         <div className="flex items-end justify-between gap-4 pb-4 mb-6 border-b border-line" data-reveal>
           <div>
-            <div className="text-subtitle font-bold uppercase tracking-[.14em] text-sm">Proyectos</div>
+            <div className="text-subtitle font-bold uppercase tracking-[.14em] text-sm">
+              Proyectos
+            </div>
             <h2 className="text-title text-3xl font-bold">Obras destacadas</h2>
           </div>
-          <p className="hidden md:block">Calidad constructiva, eficiencia y diseño, en cada etapa.</p>
+          <p className="hidden md:block text-text">
+            Calidad constructiva, eficiencia y diseño, en cada etapa.
+          </p>
         </div>
-        <div className="relative overflow-hidden rounded-2xl shadow-soft bg-white" data-reveal>
-          <div ref={trackRef} className="flex transition-transform duration-500 ease-out">
-            {slidesData.map((s, i) => (
-              <article key={i} className="relative min-w-full h-[420px] group cursor-pointer">
-                <img className="w-full h-full object-cover" src={s.img} alt={s.caption} />
-                
-                {/* Overlay oscuro al hacer hover */}
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/50 transition-all duration-300" />
-                
-                {/* Botón central para ver el proyecto */}
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleProjectClick(s.id)
-                  }}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100 z-20"
-                >
-                  <div className="bg-white/95 backdrop-blur-sm rounded-full px-6 py-3 shadow-soft border btn-gold hover:bg-title hover:text-white transition-all duration-300">
-                    <span className="font-semibold text-sm">Ver Proyecto</span>
-                  </div>
-                </button>
-                
-                {/* Hacer toda la imagen clickeable */}
-                <div 
-                  className="absolute inset-0 cursor-pointer z-10"
-                  onClick={() => handleProjectClick(s.id)}
-                />
-                
-                <div className="absolute left-4 bottom-4 text-white bg-black/40 backdrop-blur-sm px-3 py-2 rounded-xl z-15">
-                  {s.caption}
-                </div>
-              </article>
+        
+        {/* Carrusel principal */}
+        <div 
+          className="carousel-container relative rounded-2xl shadow-soft bg-white group" 
+          data-reveal
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          role="region"
+          aria-label="Galería de proyectos"
+        >
+          {/* Track del carrusel */}
+          <div 
+            ref={trackRef} 
+            className="carousel-track"
+          >
+            {slides.map((slide, index) => (
+              <CarouselSlide
+                key={`${slide.id}-${index}`}
+                slide={slide}
+                onProjectClick={handleProjectClick}
+              />
             ))}
           </div>
-          <button onClick={()=>goTo(idx-1)} aria-label="Anterior" className="absolute top-1/2 -translate-y-1/2 left-3 grid place-items-center w-11 h-11 bg-white/85 border btn-gold rounded-xl shadow-soft hover:bg-white z-30">‹</button>
-          <button onClick={()=>goTo(idx+1)} aria-label="Siguiente" className="absolute top-1/2 -translate-y-1/2 right-3 grid place-items-center w-11 h-11 bg-white/85 border btn-gold rounded-xl shadow-soft hover:bg-white z-30">›</button>
-          <div className="absolute inset-x-0 -bottom-2 pb-5 flex justify-center gap-2 z-20">
-            {slidesData.map((_, i) => (
-              <button key={i} onClick={()=>goTo(i)} aria-label={`Ir a slide ${i+1}`} className={`w-2.5 h-2.5 rounded-full border border-white ${i===idx ? 'bg-white' : 'bg-white/50'}`}></button>
-            ))}
-          </div>
+          
+          {/* Botones de navegación */}
+          <NavigationButton
+            direction="left"
+            onClick={goToPrevious}
+            ariaLabel="Proyecto anterior"
+          />
+          <NavigationButton
+            direction="right"
+            onClick={goToNext}
+            ariaLabel="Proyecto siguiente"
+          />
+          
+          {/* Indicadores de navegación */}
+          <NavigationDots
+            slides={slides}
+            currentIndex={currentIndex}
+            onDotClick={goToSlide}
+          />
+        </div>
+        
+        {/* Información adicional */}
+        <div className="mt-4 text-center" data-reveal>
+          <p className="text-sm text-text/70">
+            {currentIndex + 1} de {slides.length} proyectos
+          </p>
         </div>
       </div>
     </section>

@@ -1,135 +1,270 @@
-import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+// src/components/ProjectDetail.jsx (VERSIÓN SIN BUCLES DE CARGA)
+
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Button from './ui/Button'
-import { useGoToSection } from '../hooks/useGoToSection'
+import { getProject } from '../data/projectsData'
 
-// Función helper para generar rutas de imágenes
-const getProjectImage = (project, image) => {
-  return `${import.meta.env.BASE_URL}resources/projects/${project}/${image}`
-}
+// Componente simple para elemento de galería (imágenes más pequeñas)
+const SimpleGalleryItem = ({ item, index, onImageClick }) => {
+  const [hasError, setHasError] = useState(false)
 
-const projectsData = {
-  'casa-1': {
-    title: 'Casa',
-    subtitle: '12.000 m² · 2023',
-    description: 'Proyecto de construcción integral para oficinas corporativas en el centro de la ciudad. Diseño moderno y funcional que maximiza el aprovechamiento del espacio disponible, incorporando tecnologías sustentables y espacios colaborativos que fomentan la productividad.',
-    features: [
-      'Área total: 12.000 m²',
-      '8 niveles de oficinas',
-      'Certificación LEED Gold',
-      'Sistema de climatización inteligente',
-      'Espacios colaborativos y salas de reuniones',
-      'Estacionamientos subterráneos para 200 vehículos',
-      'Terraza verde en último piso'
-    ],
-    images: [
-      getProjectImage('casa-1', 'main.jpg'),
-      getProjectImage('casa-1', 'fachada.jpg'),
-      getProjectImage('casa-1', 'espacios.jpg'),
-      getProjectImage('casa-1', 'sala.jpg')
-    ],
-    gallery: [
-      { 
-        img: getProjectImage('casa-1', 'fachada.jpg'), 
-        caption: 'Fachada principal' 
-      },
-      { 
-        img: getProjectImage('casa-1', 'espacios.jpg'), 
-        caption: 'Espacios de trabajo' 
-      },
-      { 
-        img: getProjectImage('casa-1', 'sala.jpg'), 
-        caption: 'Salas de reuniones' 
-      }
-    ]
-  },
-  'interior-patagonia': {
-    title: 'Interior Patagonia',
-    subtitle: '180 m² · 2025',
-    description: 'Diseño y construcción de interior residencial inspirado en la naturaleza patagónica. Proyecto que combina materiales nobles como madera nativa y piedra natural, creando espacios cálidos y acogedores que se integran armoniosamente con el paisaje circundante.',
-    features: [
-      'Área: 180 m²',
-      '3 dormitorios y 2.5 baños',
-      'Sala de estar con chimenea a leña',
-      'Cocina integrada con isla central',
-      'Materiales sustentables y locales',
-      'Sistema de calefacción radiante',
-      'Ventanales con vista panorámica',
-      'Deck exterior en madera nativa'
-    ],
-    images: [
-      getProjectImage('interior-patagonia', 'main.jpg'),
-      getProjectImage('interior-patagonia', 'sala.jpg'),
-      getProjectImage('interior-patagonia', 'cocina.jpg')
-    ],
-    gallery: [
-      { 
-        img: getProjectImage('interior-patagonia', 'sala.jpg'), 
-        caption: 'Sala principal' 
-      },
-      { 
-        img: getProjectImage('interior-patagonia', 'cocina.jpg'), 
-        caption: 'Cocina integrada' 
-      },
-      { 
-        img: getProjectImage('interior-patagonia', 'dormitorio.jpg'), 
-        caption: 'Dormitorio principal' 
-      }
-    ]
+  const handleImageError = () => {
+    setHasError(true)
   }
+
+  // Si la imagen falló, no mostrar el elemento
+  if (hasError) {
+    return null
+  }
+
+  return (
+    <div 
+      className="aspect-square overflow-hidden rounded-lg cursor-pointer transition-all duration-300 relative bg-gray-100 hover:shadow-lg hover:-translate-y-1 max-w-[200px] mx-auto"
+      onClick={() => onImageClick(item.img, item.caption)}
+    >
+      <img
+        src={item.img}
+        alt={item.caption}
+        className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+        onError={handleImageError}
+        loading="lazy"
+      />
+      
+      {/* Icono de zoom más pequeño */}
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 scale-75 opacity-0 hover:opacity-100 transition-all duration-300 bg-white/90 rounded-full p-2 backdrop-blur-sm">
+        <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+        </svg>
+      </div>
+      
+      {/* Overlay con caption más sutil */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-end p-2">
+        <p className="text-white text-xs font-medium truncate">{item.caption}</p>
+      </div>
+    </div>
+  )
 }
 
-export default function ProjectDetail() {
-  const location = useLocation()
-  const go = useGoToSection()
-  const [lightboxImage, setLightboxImage] = useState(null)
-  
-  // Extraer el ID del proyecto de la URL actual
-  const projectId = location.pathname.split('/').pop()?.replace('proyecto-', '') || ''
-  const project = projectsData[projectId]
-  
-  useEffect(() => {
-    // Scroll al inicio cuando se carga el componente
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [projectId])
+// Galería simple sin verificación automática
+const SimpleGallery = ({ project, onImageClick }) => {
+  return (
+    <div className="mb-8" data-reveal>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-title text-2xl font-bold">Galería del proyecto</h3>
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium" style={{backgroundColor: 'var(--subtitle)', color: 'white'}}>
+          {project.imageCount} {project.imageCount === 1 ? 'imagen' : 'imágenes'}
+        </span>
+      </div>
+      
+      {/* Grid directo con Tailwind - 4 columnas en desktop */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
+        {project.gallery.map((item, i) => (
+          <SimpleGalleryItem
+            key={`${project.id}-${i}`}
+            item={item}
+            index={i}
+            onImageClick={onImageClick}
+          />
+        ))}
+      </div>
+      
+      {/* Información adicional */}
+      <div className="mt-4 text-center">
+        <p className="text-xs text-gray-500">
+          {project.imageCount} imágenes configuradas para este proyecto
+        </p>
+      </div>
+    </div>
+  )
+}
 
-  // Manejar tecla ESC para cerrar lightbox
+// Componente para imagen con lazy loading simple
+const LazyImage = ({ src, alt, className, onClick, children }) => {
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [hasError, setHasError] = useState(false)
+
+  const handleError = useCallback(() => {
+    setHasError(true)
+  }, [])
+
+  if (hasError) {
+    return (
+      <div className={`${className} bg-gray-200 flex items-center justify-center`}>
+        <div className="text-center text-gray-500">
+          <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p className="text-sm">Imagen no disponible</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={className} onClick={onClick}>
+      <img
+        src={src}
+        alt={alt}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setIsLoaded(true)}
+        onError={handleError}
+        loading="lazy"
+      />
+      {children}
+    </div>
+  )
+}
+
+// Componente para el lightbox
+const Lightbox = ({ image, onClose }) => {
   useEffect(() => {
+    if (!image) return
+
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setLightboxImage(null)
-      }
+      if (e.key === 'Escape') onClose()
     }
     
-    if (lightboxImage) {
-      document.addEventListener('keydown', handleKeyDown)
-      // Prevenir scroll del body cuando el modal está abierto
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
+    document.addEventListener('keydown', handleKeyDown)
+    
+    // Solo bloquear scroll cuando lightbox esté abierto
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'unset'
+      document.body.style.overflow = originalOverflow
     }
-  }, [lightboxImage])
+  }, [image, onClose])
 
-  const openLightbox = (image, caption) => {
-    setLightboxImage({ img: image, caption })
-  }
+  if (!image) return null
 
-  const closeLightbox = () => {
-    setLightboxImage(null)
-  }
+  return (
+    <div 
+      className="lightbox-overlay"
+      onClick={onClose}
+    >
+      <div className="lightbox-content">
+        {/* Botón cerrar */}
+        <button 
+          onClick={onClose}
+          className="lightbox-close"
+          aria-label="Cerrar"
+        >
+          ×
+        </button>
+        
+        {/* Imagen en lightbox */}
+        <img 
+          src={image.img} 
+          alt={image.caption}
+          className="lightbox-image"
+          onClick={(e) => e.stopPropagation()}
+        />
+        
+        {/* Caption en lightbox */}
+        <div className="lightbox-caption">
+          <p>{image.caption}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Componente de información del proyecto
+const ProjectInfo = ({ project }) => (
+  <div className="grid md:grid-cols-2 gap-8 mb-8">
+    <div className="bg-white border border-line rounded-2xl p-6 shadow-soft" data-reveal>
+      <h3 className="text-title text-xl font-bold mb-4">Descripción</h3>
+      <p className="text-text leading-relaxed mb-4">{project.description}</p>
+      
+      {/* Información adicional del proyecto */}
+      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+        <div>
+          <span className="text-sm text-gray-500">Área total</span>
+          <p className="font-semibold text-title">{project.area}</p>
+        </div>
+        <div>
+          <span className="text-sm text-gray-500">Año</span>
+          <p className="font-semibold text-title">{project.year}</p>
+        </div>
+        <div>
+          <span className="text-sm text-gray-500">Tipo</span>
+          <p className="font-semibold text-title">{project.type}</p>
+        </div>
+        <div>
+          <span className="text-sm text-gray-500">Imágenes</span>
+          <p className="font-semibold text-title">{project.imageCount} fotos</p>
+        </div>
+      </div>
+    </div>
+    
+    <div className="bg-white border border-line rounded-2xl p-6 shadow-soft" data-reveal>
+      <h3 className="text-title text-xl font-bold mb-4">Características</h3>
+      <ul className="space-y-2">
+        {project.features.map((feature, i) => (
+          <li key={i} className="flex items-start gap-3 text-text">
+            <span className="text-blue-500 mt-1">✓</span>
+            {feature}
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+)
+
+export default function ProjectDetail() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [lightboxImage, setLightboxImage] = useState(null)
   
+  // Extraer el ID del proyecto correctamente
+  const projectId = useMemo(() => {
+    const pathSegments = location.pathname.split('/')
+    const projectSegment = pathSegments.find(segment => segment.startsWith('proyecto-'))
+    
+    // Si encontramos algo como "proyecto-proyecto-1", extraer solo "proyecto-1"
+    if (projectSegment && projectSegment.startsWith('proyecto-proyecto-')) {
+      return projectSegment.replace('proyecto-', '')
+    }
+    
+    return projectSegment || ''
+  }, [location.pathname])
+  
+  // Obtener proyecto usando la función centralizada
+  const project = useMemo(() => getProject(projectId), [projectId])
+  
+  useEffect(() => {
+    // Asegurar que el scroll funcione al cargar la página
+    document.body.style.overflow = 'auto'
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [projectId])
+
+  // Funciones memoizadas para mejor performance
+  const openLightbox = useCallback((image, caption) => {
+    setLightboxImage({ img: image, caption })
+  }, [])
+
+  const closeLightbox = useCallback(() => {
+    setLightboxImage(null)
+  }, [])
+
+  const handleBackToProjects = useCallback(() => {
+    navigate('/inicio?to=proyectos')
+  }, [navigate])
+
+  const handleContactClick = useCallback(() => {
+    navigate('/inicio?to=contacto')
+  }, [navigate])
+  
+  // Proyecto no encontrado
   if (!project) {
     return (
       <section className="py-16 scroll-mt-24">
         <div className="container text-center">
           <h1 className="text-title text-4xl font-bold mb-4">Proyecto no encontrado</h1>
           <p className="text-text mb-6">El proyecto que buscas no existe o ha sido movido.</p>
-          <Button onClick={() => go('proyectos')}>Volver a proyectos</Button>
+          <Button onClick={handleBackToProjects}>Volver a proyectos</Button>
         </div>
       </section>
     )
@@ -137,126 +272,81 @@ export default function ProjectDetail() {
   
   return (
     <>
-      <section id={`proyecto-${projectId}`} className="py-16 scroll-mt-24">
+      <section className="project-detail-page py-16 scroll-mt-24">
         <div className="container">
+          {/* Header con navegación */}
           <div className="mb-8" data-reveal>
             <button 
-              onClick={() => go('proyectos')} 
+              onClick={handleBackToProjects}
               className="flex items-center gap-2 text-subtitle hover:opacity-70 mb-4 transition-colors"
+              aria-label="Volver a proyectos"
             >
               <span>←</span> Volver a proyectos
             </button>
-            <h1 className="text-title text-4xl font-bold">{project.title}</h1>
-            <p className="text-subtitle text-lg font-semibold mt-2">{project.subtitle}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-title text-4xl font-bold">{project.title}</h1>
+                <p className="text-subtitle text-lg font-semibold mt-2">{project.subtitle}</p>
+              </div>
+
+            </div>
           </div>
           
-          {/* Imagen principal */}
+          {/* Imagen principal con lazy loading y fallback */}
           <div className="mb-8" data-reveal>
-            <img 
-              src={project.images[0]} 
+            <LazyImage
+              src={project.mainImage}
               alt={project.title}
               className="w-full h-[400px] md:h-[500px] object-cover rounded-2xl shadow-soft"
             />
           </div>
           
-          {/* Descripción y Características lado a lado */}
-          <div className="grid md:grid-cols-2 gap-8 mb-8">
-            <div className="bg-white border border-line rounded-2xl p-6 shadow-soft" data-reveal>
-              <h3 className="text-title text-xl font-bold mb-4">Descripción</h3>
-              <p className="text-text leading-relaxed">{project.description}</p>
-            </div>
-            
-            <div className="bg-white border border-line rounded-2xl p-6 shadow-soft" data-reveal>
-              <h3 className="text-title text-xl font-bold mb-4">Características</h3>
-              <ul className="space-y-2">
-                {project.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-3 text-text">
-                    <span className="text-subtitle mt-1">•</span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          {/* Información del proyecto */}
+          <ProjectInfo project={project} />
 
-          {/* Galería de imágenes */}
-          <div className="mb-8" data-reveal>
-            <h3 className="text-title text-2xl font-bold mb-6">Galería del proyecto</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {project.gallery.map((item, i) => (
-                <div 
-                  key={i} 
-                  className="relative group cursor-pointer overflow-hidden rounded-xl shadow-soft hover:shadow-lg transition-all duration-300"
-                  onClick={() => openLightbox(item.img, item.caption)}
-                >
-                  <img 
-                    src={item.img} 
-                    alt={item.caption}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {/* Overlay con icono de zoom */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 rounded-full p-3">
-                      <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                      </svg>
-                    </div>
-                  </div>
-                  {/* Caption */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                    <p className="text-white text-sm font-medium">{item.caption}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Galería simple (sin verificación automática) */}
+          <SimpleGallery 
+            project={project} 
+            onImageClick={openLightbox}
+          />
 
-          {/* CTA de ancho completo debajo de las imágenes */}
+          {/* CTA optimizado */}
           <div className="bg-white border border-line rounded-2xl shadow-soft p-8 text-center" data-reveal>
             <h3 className="text-title text-2xl font-bold mb-4">¿Tienes un proyecto similar?</h3>
             <p className="text-text mb-6 leading-relaxed max-w-2xl mx-auto">
               Contáctanos para desarrollar tu proyecto con la misma calidad y atención al detalle. 
               Nuestro equipo está listo para materializar tus ideas y convertirlas en realidad.
             </p>
-            <Button onClick={() => go('contacto')} size="lg">
-              Solicitar cotización gratuita
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={handleContactClick} size="lg">
+                Solicitar cotización gratuita
+              </Button>
+              <button
+                onClick={handleBackToProjects} 
+                className="px-6 py-3 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 shadow-soft hover:shadow-lg"
+                style={{
+                  border: '2px solid var(--subtitle)',
+                  color: 'var(--subtitle)',
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'var(--subtitle)'
+                  e.target.style.color = 'white'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent'
+                  e.target.style.color = 'var(--subtitle)'
+                }}
+              >
+                Ver más proyectos
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Lightbox Modal */}
-      {lightboxImage && (
-        <div 
-          className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
-          onClick={closeLightbox}
-        >
-          <div className="relative max-w-4xl max-h-[90vh] w-full">
-            {/* Botón cerrar */}
-            <button 
-              onClick={closeLightbox}
-              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors z-10"
-            >
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            
-            {/* Imagen en lightbox */}
-            <img 
-              src={lightboxImage.img} 
-              alt={lightboxImage.caption}
-              className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()}
-            />
-            
-            {/* Caption en lightbox */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 rounded-b-lg">
-              <p className="text-white text-lg font-medium text-center">{lightboxImage.caption}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Lightbox optimizado */}
+      <Lightbox image={lightboxImage} onClose={closeLightbox} />
     </>
   )
 }

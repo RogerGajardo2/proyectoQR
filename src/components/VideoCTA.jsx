@@ -7,8 +7,8 @@ export default function VideoCTA(){
     <section className="relative min-h-[60vh] grid place-items-center overflow-hidden bg-alt" style={{ isolation: 'isolate' }}>
       <div className="absolute inset-0 z-0" aria-hidden>
         <video className="w-full h-full object-cover" autoPlay muted loop playsInline preload="auto">
-          <source src={`${import.meta.env.BASE_URL}resources/proconing_hero_bg_5s.webm`} type="video/webm" />
-          <source src={`${import.meta.env.BASE_URL}resources/proconing_hero_bg_5s.mp4`} type="video/mp4" />
+          <source src={`${import.meta.env.BASE_URL}resources/proconing_hero_bg_5s-1.webm`} type="video/webm" />
+          <source src={`${import.meta.env.BASE_URL}resources/proconing_hero_bg_5s-1.mp4`} type="video/mp4" />
         </video>
       </div>
       <div className="absolute inset-0 z-10 bg-[#6b7280] mix-blend-multiply opacity-90" aria-hidden />
