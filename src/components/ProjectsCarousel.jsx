@@ -79,10 +79,12 @@ export default function ProjectsCarousel() {
   const handleProjectClick = useCallback((projectId) => {
     navigate(`/inicio/proyecto-${projectId}`)
   }, [navigate])
-  
-  // Función para navegar a la lista completa de proyectos
+
   const handleViewAllProjects = useCallback(() => {
     navigate('/inicio/proyectos')
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }, 100)
   }, [navigate])
   
   // Funciones de navegación memoizadas
