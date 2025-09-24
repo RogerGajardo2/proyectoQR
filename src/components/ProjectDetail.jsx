@@ -19,7 +19,7 @@ const SimpleGalleryItem = ({ item, index, onImageClick }) => {
   }
 
   return (
-    <div 
+    <div
       className="aspect-square overflow-hidden rounded-lg cursor-pointer transition-all duration-300 relative bg-gray-100 hover:shadow-lg hover:-translate-y-1 max-w-[200px] mx-auto"
       onClick={() => onImageClick(index)}
     >
@@ -30,7 +30,7 @@ const SimpleGalleryItem = ({ item, index, onImageClick }) => {
         onError={handleImageError}
         loading="lazy"
       />
-      
+
       {/* Icono de zoom más pequeño */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 scale-75 opacity-0 hover:opacity-100 transition-all duration-300 bg-white/90 rounded-full p-2 backdrop-blur-sm">
         <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,11 +47,11 @@ const SimpleGallery = ({ project, onImageClick }) => {
     <div className="mb-8" data-reveal>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-title text-2xl font-bold">Galería del proyecto</h3>
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium" style={{backgroundColor: 'var(--subtitle)', color: 'white'}}>
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'var(--subtitle)', color: 'white' }}>
           {project.imageCount} {project.imageCount === 1 ? 'imagen' : 'imágenes'}
         </span>
       </div>
-      
+
       {/* Grid directo con Tailwind - 4 columnas en desktop */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
         {project.gallery.map((item, i) => (
@@ -63,7 +63,7 @@ const SimpleGallery = ({ project, onImageClick }) => {
           />
         ))}
       </div>
-      
+
       {/* Información adicional */}
       <div className="mt-4 text-center">
         <p className="text-xs text-gray-500">
@@ -88,7 +88,7 @@ const LazyImage = ({ src, alt, className, onClick, children }) => {
       <div className={`${className} bg-gray-200 flex items-center justify-center`}>
         <div className="text-center text-gray-500">
           <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" />
           </svg>
           <p className="text-sm">Imagen no disponible</p>
         </div>
@@ -141,10 +141,10 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
 
   const handleTouchEnd = useCallback(() => {
     if (!touchStart || !touchEnd) return
-    
+
     const distance = touchStart - touchEnd
     const minSwipeDistance = 50
-    
+
     if (distance > minSwipeDistance) {
       // Swipe izquierda - siguiente imagen
       goToNext()
@@ -172,13 +172,13 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
           break
       }
     }
-    
+
     document.addEventListener('keydown', handleKeyDown)
-    
+
     // Solo bloquear scroll cuando lightbox esté abierto
     const originalOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = originalOverflow
@@ -192,7 +192,7 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
   const hasNext = currentIndex < gallery.length - 1
 
   return (
-    <div 
+    <div
       className="lightbox-overlay"
       onClick={onClose}
       onTouchStart={handleTouchStart}
@@ -201,14 +201,14 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
     >
       <div className="lightbox-content">
         {/* Botón cerrar */}
-        <button 
+        <button
           onClick={onClose}
           className="lightbox-close"
           aria-label="Cerrar"
         >
           ×
         </button>
-        
+
         {/* Contador de imágenes */}
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm z-50">
           {currentIndex + 1} de {gallery.length}
@@ -245,22 +245,22 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
             </svg>
           </button>
         )}
-        
+
         {/* Imagen en lightbox */}
         <div className="relative max-w-full max-h-full flex items-center justify-center">
-          <img 
-            src={currentImage.img} 
+          <img
+            src={currentImage.img}
             alt={currentImage.caption}
             className="lightbox-image"
             onClick={(e) => e.stopPropagation()}
-            style={{ 
-              maxWidth: '90vw', 
+            style={{
+              maxWidth: '90vw',
               maxHeight: '80vh',
               objectFit: 'contain'
             }}
           />
         </div>
-        
+
         {/* Caption en lightbox */}
         <div className="lightbox-caption">
           <p className="text-center">{currentImage.caption}</p>
@@ -276,11 +276,10 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
                   e.stopPropagation()
                   onNavigate(index)
                 }}
-                className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                  index === currentIndex 
-                    ? 'bg-white scale-125' 
+                className={`w-2 h-2 rounded-full transition-all duration-200 ${index === currentIndex
+                    ? 'bg-white scale-125'
                     : 'bg-white/50 hover:bg-white/75'
-                }`}
+                  }`}
                 aria-label={`Ir a imagen ${index + 1}`}
               />
             ))}
@@ -297,7 +296,7 @@ const ProjectInfo = ({ project }) => (
     <div className="bg-white border border-line rounded-2xl p-6 shadow-soft" data-reveal>
       <h3 className="text-title text-xl font-bold mb-4">Descripción</h3>
       <p className="text-text leading-relaxed mb-4">{project.description}</p>
-      
+
       {/* Información adicional del proyecto */}
       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
         <div>
@@ -318,7 +317,7 @@ const ProjectInfo = ({ project }) => (
         </div>
       </div>
     </div>
-    
+
     <div className="bg-white border border-line rounded-2xl p-6 shadow-soft" data-reveal>
       <h3 className="text-title text-xl font-bold mb-4">Características</h3>
       <ul className="space-y-2">
@@ -337,23 +336,23 @@ export default function ProjectDetail() {
   const location = useLocation()
   const navigate = useNavigate()
   const [lightboxIndex, setLightboxIndex] = useState(null)
-  
+
   // Extraer el ID del proyecto correctamente
   const projectId = useMemo(() => {
     const pathSegments = location.pathname.split('/')
     const projectSegment = pathSegments.find(segment => segment.startsWith('proyecto-'))
-    
+
     // Si encontramos algo como "proyecto-proyecto-1", extraer solo "proyecto-1"
     if (projectSegment && projectSegment.startsWith('proyecto-proyecto-')) {
       return projectSegment.replace('proyecto-', '')
     }
-    
+
     return projectSegment || ''
   }, [location.pathname])
-  
+
   // Obtener proyecto usando la función centralizada
   const project = useMemo(() => getProject(projectId), [projectId])
-  
+
   useEffect(() => {
     // Asegurar que el scroll funcione al cargar la página
     document.body.style.overflow = 'auto'
@@ -394,7 +393,7 @@ export default function ProjectDetail() {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }, 100)
   }, [navigate])
-  
+
   // Proyecto no encontrado
   if (!project) {
     return (
@@ -407,14 +406,14 @@ export default function ProjectDetail() {
       </section>
     )
   }
-  
+
   return (
     <>
       <section className="project-detail-page py-16 scroll-mt-24">
         <div className="container">
           {/* Header con navegación */}
           <div className="mb-8" data-reveal>
-            <button 
+            <button
               onClick={handleBackToProjects}
               className="flex items-center gap-2 text-subtitle hover:opacity-70 mb-4 transition-colors"
               aria-label="Volver a proyectos"
@@ -428,37 +427,38 @@ export default function ProjectDetail() {
               </div>
             </div>
           </div>
-          
+
           {/* Imagen principal con lazy loading y fallback */}
           <div className="mb-8" data-reveal>
             <LazyImage
               src={project.mainImage}
+              alt={project.title}
               className="w-full h-[400px] md:h-[500px] object-cover rounded-2xl shadow-soft cursor-pointer"
               onClick={() => openLightbox(0)}
             />
           </div>
-          
+
           {/* Información del proyecto */}
           <ProjectInfo project={project} />
 
           {/* Galería simple (sin verificación automática) */}
-          <SimpleGallery 
-            project={project} 
+          <SimpleGallery
+            project={project}
             onImageClick={openLightbox}
           />
 
-          {/* CTA optimizado */}
+          {/* CTA optimizado con botones centrados - SOLUCIÓN CORREGIDA */}
           <div className="bg-white border border-line rounded-2xl shadow-soft p-8 text-center" data-reveal>
             <h3 className="text-title text-2xl font-bold mb-4">¿Tienes un proyecto similar?</h3>
             <p className="text-text mb-6 leading-relaxed max-w-2xl mx-auto">
-              Contáctanos para desarrollar tu proyecto con la misma calidad y atención al detalle. 
+              Contáctanos para desarrollar tu proyecto con la misma calidad y atención al detalle.
               Nuestro equipo está listo para materializar tus ideas y convertirlas en realidad.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={handleContactClick} size="lg">
+            <div className="button-container-centered">
+              <Button onClick={handleContactClick} size="lg" className="btn-mobile-full">
                 Solicitar cotización gratuita
               </Button>
-              <Button size="lg" onClick={handleViewMoreProjects}>
+              <Button size="lg" onClick={handleViewMoreProjects} className="btn-mobile-full">
                 Ver más proyectos
               </Button>
             </div>
@@ -467,10 +467,10 @@ export default function ProjectDetail() {
       </section>
 
       {/* Lightbox con navegación */}
-      <Lightbox 
-        currentIndex={lightboxIndex} 
+      <Lightbox
+        currentIndex={lightboxIndex}
         gallery={project ? project.gallery : []}
-        onClose={closeLightbox} 
+        onClose={closeLightbox}
         onNavigate={navigateToImage}
       />
     </>
