@@ -1,4 +1,4 @@
-// src/components/ProjectsCarousel.jsx (VERSIÓN CON BOTÓN A LISTA)
+// src/components/ProjectsCarousel.jsx (VERSIÓN CON BOTÓN A LISTA - MOBILE OPTIMIZED + SWIPE)
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -15,8 +15,8 @@ const CarouselSlide = ({ slide, onProjectClick }) => (
       loading="lazy"
     />
     
-    {/* Overlay oscuro al hacer hover */}
-    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/50 transition-all duration-300" />
+    {/* Overlay base sin efecto hover */}
+    <div className="absolute inset-0 bg-black/20 transition-all duration-300" />
     
     {/* Botón central para ver el proyecto */}
     <Button 
@@ -40,7 +40,13 @@ const NavigationButton = ({ direction, onClick, ariaLabel }) => (
   <button 
     onClick={onClick}
     aria-label={ariaLabel}
-    className={`carousel-nav-button ${direction}`}
+    className={`
+      absolute ${direction === 'left' ? 'left-4' : 'right-4'} top-1/2 transform -translate-y-1/2 
+      bg-transparent md:bg-black/70 md:hover:bg-black/90 
+      text-white p-3 md:rounded-full 
+      transition-all duration-200 backdrop-blur-sm z-50 
+      hover:scale-110
+    `}
   >
     {direction === 'left' ? '‹' : '›'}
   </button>
@@ -48,7 +54,7 @@ const NavigationButton = ({ direction, onClick, ariaLabel }) => (
 
 // Componente para indicadores de navegación
 const NavigationDots = ({ slides, currentIndex, onDotClick }) => (
-  <div className="absolute inset-x-0 -bottom-2 pb-5 flex justify-center gap-2 z-20">
+  <div className="absolute inset-x-0 -bottom-2 pb-5 flex justify-center gap-2 z-20 max-md:hidden">
     {slides.map((_, i) => (
       <button 
         key={i}
@@ -62,6 +68,8 @@ const NavigationDots = ({ slides, currentIndex, onDotClick }) => (
 
 export default function ProjectsCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [touchStart, setTouchStart] = useState(null)
+  const [touchEnd, setTouchEnd] = useState(null)
   const trackRef = useRef(null)
   const timerRef = useRef(null)
   const navigate = useNavigate()
@@ -95,6 +103,31 @@ export default function ProjectsCarousel() {
   const goToNext = useCallback(() => {
     goToSlide(currentIndex + 1)
   }, [currentIndex, goToSlide])
+
+  // Manejar gestos táctiles para navegación por swipe
+  const handleTouchStart = useCallback((e) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }, [])
+
+  const handleTouchMove = useCallback((e) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }, [])
+
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const minSwipeDistance = 50
+    
+    if (distance > minSwipeDistance) {
+      // Swipe izquierda - siguiente slide
+      goToNext()
+    } else if (distance < -minSwipeDistance) {
+      // Swipe derecha - slide anterior
+      goToPrevious()
+    }
+  }, [touchStart, touchEnd, goToNext, goToPrevious])
   
   // Efecto para actualizar la transformación del track
   useEffect(() => {
@@ -120,6 +153,27 @@ export default function ProjectsCarousel() {
     startTimer()
     return clearTimer
   }, [currentIndex, goToSlide])
+
+  // Efecto para manejar resize y aplicar transición correcta
+  useEffect(() => {
+    const handleResize = () => {
+      if (trackRef.current) {
+        const isMobile = window.innerWidth < 768
+        if (isMobile) {
+          trackRef.current.style.transition = 'transform 500ms ease-out'
+        } else {
+          trackRef.current.style.transition = 'none'
+        }
+      }
+    }
+
+    // Aplicar al cargar
+    handleResize()
+    
+    // Escuchar cambios de tamaño
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
   
   // Manejar pausa del auto-play al hacer hover
   const handleMouseEnter = useCallback(() => {
@@ -196,47 +250,56 @@ export default function ProjectsCarousel() {
           </div>
         </div>
         
-        {/* Carrusel principal */}
-        <div 
-          className="carousel-container relative rounded-2xl shadow-soft bg-white group" 
-          data-reveal
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          role="region"
-          aria-label="Galería de proyectos"
-        >
-          {/* Track del carrusel */}
+        {/* Carrusel principal - salir del container en móvil */}
+        <div className="-mx-4 md:mx-0">
           <div 
-            ref={trackRef} 
-            className="carousel-track"
+            className="
+              carousel-container relative rounded-2xl shadow-soft bg-white group
+              /* En móvil: sin bordes redondeados ni sombra */
+              max-md:rounded-none max-md:shadow-none max-md:bg-transparent
+            " 
+            data-reveal
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            role="region"
+            aria-label="Galería de proyectos"
           >
-            {slides.map((slide, index) => (
-              <CarouselSlide
-                key={`${slide.id}-${index}`}
-                slide={slide}
-                onProjectClick={handleProjectClick}
-              />
-            ))}
+            {/* Track del carrusel */}
+            <div 
+              ref={trackRef} 
+              className="carousel-track"
+            >
+              {slides.map((slide, index) => (
+                <CarouselSlide
+                  key={`${slide.id}-${index}`}
+                  slide={slide}
+                  onProjectClick={handleProjectClick}
+                />
+              ))}
+            </div>
+            
+            {/* Botones de navegación */}
+            <NavigationButton
+              direction="left"
+              onClick={goToPrevious}
+              ariaLabel="Proyecto anterior"
+            />
+            <NavigationButton
+              direction="right"
+              onClick={goToNext}
+              ariaLabel="Proyecto siguiente"
+            />
+            
+            {/* Indicadores de navegación - Ocultos en mobile */}
+            <NavigationDots
+              slides={slides}
+              currentIndex={currentIndex}
+              onDotClick={goToSlide}
+            />
           </div>
-          
-          {/* Botones de navegación */}
-          <NavigationButton
-            direction="left"
-            onClick={goToPrevious}
-            ariaLabel="Proyecto anterior"
-          />
-          <NavigationButton
-            direction="right"
-            onClick={goToNext}
-            ariaLabel="Proyecto siguiente"
-          />
-          
-          {/* Indicadores de navegación */}
-          <NavigationDots
-            slides={slides}
-            currentIndex={currentIndex}
-            onDotClick={goToSlide}
-          />
         </div>
         
         {/* Información adicional y enlaces */}

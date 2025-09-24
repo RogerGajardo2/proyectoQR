@@ -154,7 +154,7 @@ main {
 .carousel-track {
   height: 420px;
   display: flex;
-  transition: transform 0.5s ease-out;
+  /* Sin transición por defecto - se aplica solo en móvil */
 }
 
 .carousel-slide {
@@ -771,7 +771,11 @@ main {
 }
 
 @media (max-width: 768px) {
-  /* Carrusel en móviles */
+  /* Carrusel en móviles - AGREGAR TRANSICIÓN SUAVE */
+  .carousel-track {
+    transition: transform 0.5s ease-out !important;
+  }
+  
   .carousel-container,
   .carousel-track,
   .carousel-slide {

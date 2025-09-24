@@ -1,4 +1,4 @@
-// src/components/ProjectDetail.jsx (CON NAVEGACIÓN EN LIGHTBOX)
+// src/components/ProjectDetail.jsx (CON NAVEGACIÓN EN LIGHTBOX Y MODIFICACIONES MOBILE)
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -36,11 +36,6 @@ const SimpleGalleryItem = ({ item, index, onImageClick }) => {
         <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
         </svg>
-      </div>
-      
-      {/* Overlay con caption más sutil */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-end p-2">
-        <p className="text-white text-xs font-medium truncate">{item.caption}</p>
       </div>
     </div>
   )
@@ -219,14 +214,14 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
           {currentIndex + 1} de {gallery.length}
         </div>
 
-        {/* Botón anterior */}
+        {/* Botón anterior - Modificado para mobile */}
         {hasPrevious && (
           <button
             onClick={(e) => {
               e.stopPropagation()
               goToPrevious()
             }}
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 text-white p-3 rounded-full transition-all duration-200 backdrop-blur-sm z-50 hover:scale-110"
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-transparent md:bg-black/70 md:hover:bg-black/90 text-white p-3 md:rounded-full transition-all duration-200 backdrop-blur-sm z-50 hover:scale-110"
             aria-label="Imagen anterior"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,14 +230,14 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
           </button>
         )}
 
-        {/* Botón siguiente */}
+        {/* Botón siguiente - Modificado para mobile */}
         {hasNext && (
           <button
             onClick={(e) => {
               e.stopPropagation()
               goToNext()
             }}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 text-white p-3 rounded-full transition-all duration-200 backdrop-blur-sm z-50 hover:scale-110"
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-transparent md:bg-black/70 md:hover:bg-black/90 text-white p-3 md:rounded-full transition-all duration-200 backdrop-blur-sm z-50 hover:scale-110"
             aria-label="Imagen siguiente"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,9 +266,9 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
           <p className="text-center">{currentImage.caption}</p>
         </div>
 
-        {/* Indicadores de navegación (puntos) */}
+        {/* Indicadores de navegación (puntos) - Ocultos en mobile */}
         {gallery.length > 1 && (
-          <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 flex space-x-2">
+          <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 hidden md:flex space-x-2">
             {gallery.map((_, index) => (
               <button
                 key={index}
@@ -438,7 +433,6 @@ export default function ProjectDetail() {
           <div className="mb-8" data-reveal>
             <LazyImage
               src={project.mainImage}
-              alt={project.title}
               className="w-full h-[400px] md:h-[500px] object-cover rounded-2xl shadow-soft cursor-pointer"
               onClick={() => openLightbox(0)}
             />
