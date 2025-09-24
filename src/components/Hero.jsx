@@ -83,11 +83,19 @@ export default function Hero() {
       setVideoError(false)
     }
 
+    // Reiniciar video en el segundo 19
+    const handleTimeUpdate = () => {
+      if (video.currentTime >= 19) {
+        video.currentTime = 0
+      }
+    }
+
     // Solo agregar listeners si no es conexión lenta
     if (!isSlowConnection()) {
       video.addEventListener('canplaythrough', handleCanPlayThrough)
       video.addEventListener('error', handleError)
       video.addEventListener('loadstart', handleLoadStart)
+      video.addEventListener('timeupdate', handleTimeUpdate)
 
       // Cargar inmediatamente si está visible
       if (isVisible) {
@@ -99,6 +107,7 @@ export default function Hero() {
       video.removeEventListener('canplaythrough', handleCanPlayThrough)
       video.removeEventListener('error', handleError)
       video.removeEventListener('loadstart', handleLoadStart)
+      video.removeEventListener('timeupdate', handleTimeUpdate)
     }
   }, [isVisible, isSlowConnection])
 
@@ -136,7 +145,7 @@ export default function Hero() {
             videoLoaded && !videoError ? 'opacity-0' : 'opacity-100'
           }`}
           style={{
-            backgroundImage: `url(${import.meta.env.BASE_URL}resources/hero-poster.webp)`
+            backgroundImage: `url(${import.meta.env.BASE_URL}resources/hero-poster.jpg)`
           }}
         />
 
@@ -148,9 +157,8 @@ export default function Hero() {
           }`}
           muted 
           playsInline
-          loop
           preload={isSlowConnection() ? 'none' : 'metadata'}
-          poster={`${import.meta.env.BASE_URL}resources/hero-poster.webp`}
+          poster={`${import.meta.env.BASE_URL}resources/hero-poster.jpg`}
         >
           {/* Fuentes optimizadas por dispositivo */}
           {!isMobile() && (
@@ -190,13 +198,6 @@ export default function Hero() {
             type="video/mp4" 
           />
         </video>
-
-        {/* Indicador de carga sutil */}
-        {isVisible && !videoLoaded && !videoError && !isSlowConnection() && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          </div>
-        )}
       </div>
 
       {/* Overlay optimizado */}
