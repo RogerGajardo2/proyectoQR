@@ -244,19 +244,6 @@ export default function ProjectsCarousel() {
               {currentIndex + 1} de {slides.length} proyectos destacados
             </p>
           </div>
-          
-          {/* Enlace adicional a lista completa (móvil) */}
-          <div className="sm:hidden">
-            <button 
-              onClick={handleViewAllProjects}
-              className="text-sm text-subtitle hover:text-title transition-colors font-medium flex items-center gap-1"
-            >
-              Ver todos los proyectos
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
         </div>
       </div>
     </section>
