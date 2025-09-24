@@ -57,7 +57,7 @@ export default function Contact(){
           <aside className="bg-white border border-line rounded-2xl p-5 shadow-soft grid gap-3" data-reveal>
             <h3 className="text-title text-xl font-bold">Datos</h3>
             <div className="flex items-center gap-3"><span>📧</span><a href="mailto:contacto@proconing.cl">contacto@proconing.cl</a></div>
-            <div className="flex items-center gap-3"><span>📱</span><a href="tel:+56912345678">+56 9 1234 5678</a></div>
+            <div className="flex items-center gap-3"><span>📱</span><a href="tel:+56912345678">+569 7349 5086</a></div>
           </aside>
         </div>
       </div>

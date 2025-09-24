@@ -44,8 +44,8 @@ export default function Hero(){
         <h1 className="text-4xl md:text-5xl font-bold mt-2 text-[#f3f4f6]">Diseñamos y ejecutamos proyectos que perduran</h1>
         <p className="mt-3 text-[#f3f4f6]">Soluciones integrales en arquitectura, construcción y gestión de obras.</p>
         <div className="mt-5 flex justify-center gap-3">
-          <Button onClick={()=>go('proyectos')}>Ver proyectos</Button>
-          <Button variant="outline" onClick={()=>go('contacto')}>Contáctanos</Button>
+          <Button  onClick={()=>go('proyectos')}>Ver proyectos</Button>
+          <Button  onClick={()=>go('contacto')}>Contáctanos</Button>
         </div>
       </div>
     </section>

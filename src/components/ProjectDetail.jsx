@@ -1,4 +1,4 @@
-// src/components/ProjectDetail.jsx (VERSIÓN SIN BUCLES DE CARGA)
+// src/components/ProjectDetail.jsx (CON NAVEGACIÓN EN LIGHTBOX)
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -21,7 +21,7 @@ const SimpleGalleryItem = ({ item, index, onImageClick }) => {
   return (
     <div 
       className="aspect-square overflow-hidden rounded-lg cursor-pointer transition-all duration-300 relative bg-gray-100 hover:shadow-lg hover:-translate-y-1 max-w-[200px] mx-auto"
-      onClick={() => onImageClick(item.img, item.caption)}
+      onClick={() => onImageClick(index)}
     >
       <img
         src={item.img}
@@ -116,13 +116,66 @@ const LazyImage = ({ src, alt, className, onClick, children }) => {
   )
 }
 
-// Componente para el lightbox
-const Lightbox = ({ image, onClose }) => {
+// Componente para el lightbox con navegación
+const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
+  const [touchStart, setTouchStart] = useState(null)
+  const [touchEnd, setTouchEnd] = useState(null)
+
+  // Funciones de navegación
+  const goToPrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      onNavigate(currentIndex - 1)
+    }
+  }, [currentIndex, onNavigate])
+
+  const goToNext = useCallback(() => {
+    if (currentIndex < gallery.length - 1) {
+      onNavigate(currentIndex + 1)
+    }
+  }, [currentIndex, gallery.length, onNavigate])
+
+  // Manejar gestos táctiles
+  const handleTouchStart = useCallback((e) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }, [])
+
+  const handleTouchMove = useCallback((e) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }, [])
+
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const minSwipeDistance = 50
+    
+    if (distance > minSwipeDistance) {
+      // Swipe izquierda - siguiente imagen
+      goToNext()
+    } else if (distance < -minSwipeDistance) {
+      // Swipe derecha - imagen anterior
+      goToPrevious()
+    }
+  }, [touchStart, touchEnd, goToNext, goToPrevious])
+
   useEffect(() => {
-    if (!image) return
+    if (currentIndex === null) return
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose()
+      switch (e.key) {
+        case 'Escape':
+          onClose()
+          break
+        case 'ArrowLeft':
+          e.preventDefault()
+          goToPrevious()
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          goToNext()
+          break
+      }
     }
     
     document.addEventListener('keydown', handleKeyDown)
@@ -135,14 +188,21 @@ const Lightbox = ({ image, onClose }) => {
       document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = originalOverflow
     }
-  }, [image, onClose])
+  }, [currentIndex, onClose, goToPrevious, goToNext])
 
-  if (!image) return null
+  if (currentIndex === null || !gallery[currentIndex]) return null
+
+  const currentImage = gallery[currentIndex]
+  const hasPrevious = currentIndex > 0
+  const hasNext = currentIndex < gallery.length - 1
 
   return (
     <div 
       className="lightbox-overlay"
       onClick={onClose}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <div className="lightbox-content">
         {/* Botón cerrar */}
@@ -154,18 +214,83 @@ const Lightbox = ({ image, onClose }) => {
           ×
         </button>
         
+        {/* Contador de imágenes */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm z-50">
+          {currentIndex + 1} de {gallery.length}
+        </div>
+
+        {/* Botón anterior */}
+        {hasPrevious && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              goToPrevious()
+            }}
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 text-white p-3 rounded-full transition-all duration-200 backdrop-blur-sm z-50 hover:scale-110"
+            aria-label="Imagen anterior"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+
+        {/* Botón siguiente */}
+        {hasNext && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              goToNext()
+            }}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 text-white p-3 rounded-full transition-all duration-200 backdrop-blur-sm z-50 hover:scale-110"
+            aria-label="Imagen siguiente"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
+        
         {/* Imagen en lightbox */}
-        <img 
-          src={image.img} 
-          alt={image.caption}
-          className="lightbox-image"
-          onClick={(e) => e.stopPropagation()}
-        />
+        <div className="relative max-w-full max-h-full flex items-center justify-center">
+          <img 
+            src={currentImage.img} 
+            alt={currentImage.caption}
+            className="lightbox-image"
+            onClick={(e) => e.stopPropagation()}
+            style={{ 
+              maxWidth: '90vw', 
+              maxHeight: '80vh',
+              objectFit: 'contain'
+            }}
+          />
+        </div>
         
         {/* Caption en lightbox */}
         <div className="lightbox-caption">
-          <p>{image.caption}</p>
+          <p className="text-center">{currentImage.caption}</p>
         </div>
+
+        {/* Indicadores de navegación (puntos) */}
+        {gallery.length > 1 && (
+          <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 flex space-x-2">
+            {gallery.map((_, index) => (
+              <button
+                key={index}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onNavigate(index)
+                }}
+                className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                  index === currentIndex 
+                    ? 'bg-white scale-125' 
+                    : 'bg-white/50 hover:bg-white/75'
+                }`}
+                aria-label={`Ir a imagen ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -216,7 +341,7 @@ const ProjectInfo = ({ project }) => (
 export default function ProjectDetail() {
   const location = useLocation()
   const navigate = useNavigate()
-  const [lightboxImage, setLightboxImage] = useState(null)
+  const [lightboxIndex, setLightboxIndex] = useState(null)
   
   // Extraer el ID del proyecto correctamente
   const projectId = useMemo(() => {
@@ -241,20 +366,38 @@ export default function ProjectDetail() {
   }, [projectId])
 
   // Funciones memoizadas para mejor performance
-  const openLightbox = useCallback((image, caption) => {
-    setLightboxImage({ img: image, caption })
+  const openLightbox = useCallback((index) => {
+    setLightboxIndex(index)
   }, [])
 
   const closeLightbox = useCallback(() => {
-    setLightboxImage(null)
+    setLightboxIndex(null)
+  }, [])
+
+  const navigateToImage = useCallback((index) => {
+    setLightboxIndex(index)
   }, [])
 
   const handleBackToProjects = useCallback(() => {
-    navigate('/inicio?to=proyectos')
+    // Verificar si hay historial para volver
+    if (window.history.length > 1) {
+      navigate(-1) // Ir a la página anterior
+    } else {
+      // Fallback si no hay historial (acceso directo)
+      navigate('/inicio/proyectos')
+    }
   }, [navigate])
 
   const handleContactClick = useCallback(() => {
     navigate('/inicio?to=contacto')
+  }, [navigate])
+
+  const handleViewMoreProjects = useCallback(() => {
+    navigate('/inicio/proyectos')
+    // Hacer scroll al inicio de la página después de navegar
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }, 100)
   }, [navigate])
   
   // Proyecto no encontrado
@@ -281,14 +424,13 @@ export default function ProjectDetail() {
               className="flex items-center gap-2 text-subtitle hover:opacity-70 mb-4 transition-colors"
               aria-label="Volver a proyectos"
             >
-              <span>←</span> Volver a proyectos
+              <span>←</span> Volver
             </button>
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-title text-4xl font-bold">{project.title}</h1>
                 <p className="text-subtitle text-lg font-semibold mt-2">{project.subtitle}</p>
               </div>
-
             </div>
           </div>
           
@@ -297,7 +439,8 @@ export default function ProjectDetail() {
             <LazyImage
               src={project.mainImage}
               alt={project.title}
-              className="w-full h-[400px] md:h-[500px] object-cover rounded-2xl shadow-soft"
+              className="w-full h-[400px] md:h-[500px] object-cover rounded-2xl shadow-soft cursor-pointer"
+              onClick={() => openLightbox(0)}
             />
           </div>
           
@@ -321,11 +464,7 @@ export default function ProjectDetail() {
               <Button onClick={handleContactClick} size="lg">
                 Solicitar cotización gratuita
               </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                onClick={handleBackToProjects}
-              >
+              <Button size="lg" onClick={handleViewMoreProjects}>
                 Ver más proyectos
               </Button>
             </div>
@@ -333,8 +472,13 @@ export default function ProjectDetail() {
         </div>
       </section>
 
-      {/* Lightbox optimizado */}
-      <Lightbox image={lightboxImage} onClose={closeLightbox} />
+      {/* Lightbox con navegación */}
+      <Lightbox 
+        currentIndex={lightboxIndex} 
+        gallery={project ? project.gallery : []}
+        onClose={closeLightbox} 
+        onNavigate={navigateToImage}
+      />
     </>
   )
 }

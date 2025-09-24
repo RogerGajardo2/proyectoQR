@@ -2,6 +2,33 @@
 import { createProject } from './projectConfig';
 
 export const projectsData = {
+  'proyecto-5': createProject('proyecto-5', {
+    title: 'Casa Ecológica Epsilon',
+    subtitle: 'Construcción sustentable',
+    description: 'Casa ecológica con tecnologías verdes y materiales sostenibles.',
+    imageCount: 52,
+    area: '320 m²',
+    year: '2024'
+  }),
+
+  'proyecto-6': createProject('proyecto-6', {
+    title: 'Villa Mediterránea Zeta',
+    subtitle: 'Estilo mediterráneo clásico',
+    description: 'Villa con arquitectura mediterránea, patios internos y detalles artesanales.',
+    imageCount: 15,
+    area: '380 m²',
+    year: '2024'
+  }),
+
+  'proyecto-7': createProject('proyecto-7', {
+    title: 'Casa Urbana Eta',
+    subtitle: 'Diseño urbano moderno',
+    description: 'Casa urbana con diseño moderno, aprovechamiento máximo del espacio y tecnología integrada.',
+    imageCount: 9,
+    area: '180 m²',
+    year: '2023'
+  }),
+
   'proyecto-1': createProject('proyecto-1', {
     title: 'Casa Moderna Alpha',
     subtitle: 'Residencia familiar contemporánea',
@@ -36,34 +63,8 @@ export const projectsData = {
     imageCount: 14,
     area: '220 m²',
     year: '2023'
-  }),
-  
-  'proyecto-5': createProject('proyecto-5', {
-    title: 'Casa Ecológica Epsilon',
-    subtitle: 'Construcción sustentable',
-    description: 'Casa ecológica con tecnologías verdes y materiales sostenibles.',
-    imageCount: 52,
-    area: '320 m²',
-    year: '2024'
-  }),
-  
-  'proyecto-6': createProject('proyecto-6', {
-    title: 'Villa Mediterránea Zeta',
-    subtitle: 'Estilo mediterráneo clásico',
-    description: 'Villa con arquitectura mediterránea, patios internos y detalles artesanales.',
-    imageCount: 15,
-    area: '380 m²',
-    year: '2024'
-  }),
-  
-  'proyecto-7': createProject('proyecto-7', {
-    title: 'Casa Urbana Eta',
-    subtitle: 'Diseño urbano moderno',
-    description: 'Casa urbana con diseño moderno, aprovechamiento máximo del espacio y tecnología integrada.',
-    imageCount: 9,
-    area: '180 m²',
-    year: '2023'
   })
+  
 };
 
 export const getAllProjects = () => Object.values(projectsData);

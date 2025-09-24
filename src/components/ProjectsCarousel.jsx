@@ -1,4 +1,4 @@
-// src/components/ProjectsCarousel.jsx (VERSIÓN SIMPLIFICADA)
+// src/components/ProjectsCarousel.jsx (VERSIÓN CON BOTÓN A LISTA)
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -78,6 +78,11 @@ export default function ProjectsCarousel() {
   // Función para manejar clic en proyecto
   const handleProjectClick = useCallback((projectId) => {
     navigate(`/inicio/proyecto-${projectId}`)
+  }, [navigate])
+  
+  // Función para navegar a la lista completa de proyectos
+  const handleViewAllProjects = useCallback(() => {
+    navigate('/inicio/proyectos')
   }, [navigate])
   
   // Funciones de navegación memoizadas
@@ -161,17 +166,32 @@ export default function ProjectsCarousel() {
   return (
     <section id="proyectos" className="py-16 bg-alt scroll-mt-24">
       <div className="container">
-        {/* Header de la sección */}
+        {/* Header de la sección con botón a lista completa */}
         <div className="flex items-end justify-between gap-4 pb-4 mb-6 border-b border-line" data-reveal>
-          <div>
+          <div className="flex-1">
             <div className="text-subtitle font-bold uppercase tracking-[.14em] text-sm">
               Proyectos
             </div>
             <h2 className="text-title text-3xl font-bold">Obras destacadas</h2>
+            <p className="hidden md:block text-text mt-2">
+              Calidad constructiva, eficiencia y diseño, en cada etapa.
+            </p>
           </div>
-          <p className="hidden md:block text-text">
-            Calidad constructiva, eficiencia y diseño, en cada etapa.
-          </p>
+          
+          {/* Botón para ver todos los proyectos */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              onClick={handleViewAllProjects}
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              Lista de proyectos
+            </Button>
+          </div>
         </div>
         
         {/* Carrusel principal */}
@@ -217,11 +237,26 @@ export default function ProjectsCarousel() {
           />
         </div>
         
-        {/* Información adicional */}
-        <div className="mt-4 text-center" data-reveal>
-          <p className="text-sm text-text/70">
-            {currentIndex + 1} de {slides.length} proyectos
-          </p>
+        {/* Información adicional y enlaces */}
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4" data-reveal>
+          <div className="text-center sm:text-left">
+            <p className="text-sm text-text/70">
+              {currentIndex + 1} de {slides.length} proyectos destacados
+            </p>
+          </div>
+          
+          {/* Enlace adicional a lista completa (móvil) */}
+          <div className="sm:hidden">
+            <button 
+              onClick={handleViewAllProjects}
+              className="text-sm text-subtitle hover:text-title transition-colors font-medium flex items-center gap-1"
+            >
+              Ver todos los proyectos
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </section>

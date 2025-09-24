@@ -1,4 +1,4 @@
-// src/App.jsx (VERSIÓN SIMPLIFICADA)
+// src/App.jsx (VERSIÓN CON LISTA DE PROYECTOS)
 
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect, useMemo } from 'react'
@@ -12,6 +12,7 @@ import Footer from './components/Footer'
 import ScrollUp from './components/ScrollUp'
 import ProfileCard from './components/ProfileCard'
 import ProjectDetail from './components/ProjectDetail'
+import ProjectsList from './components/ProjectsList'
 import { useReveal } from './hooks/useReveal'
 
 // Componente para la landing page
@@ -63,11 +64,13 @@ export default function App() {
     const path = location.pathname
     const showLandingFrame = path.startsWith('/inicio')
     const isProjectDetail = path.includes('proyecto-')
-    const shouldShowLayout = showLandingFrame || isProjectDetail
+    const isProjectsList = path === '/inicio/proyectos'
+    const shouldShowLayout = showLandingFrame || isProjectDetail || isProjectsList
     
     return {
       showLandingFrame,
       isProjectDetail,
+      isProjectsList,
       shouldShowLayout
     }
   }, [location.pathname])
@@ -86,7 +89,10 @@ export default function App() {
           {/* Landing page */}
           <Route path="/inicio" element={<Landing />} />
           
-          {/* Rutas de proyectos */}
+          {/* Lista completa de proyectos */}
+          <Route path="/inicio/proyectos" element={<ProjectsList />} />
+          
+          {/* Rutas de proyectos individuales */}
           <Route path="/inicio/proyecto-proyecto-1" element={<ProjectDetail />} />
           <Route path="/inicio/proyecto-proyecto-2" element={<ProjectDetail />} />
           <Route path="/inicio/proyecto-proyecto-3" element={<ProjectDetail />} />
