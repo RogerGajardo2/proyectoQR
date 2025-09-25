@@ -25,7 +25,7 @@ export default function About() {
           </div>
           <div className="bg-title rounded-2xl p-3 md:p-4 text-center shadow-soft border border-line border-subtitle">
             <div className="text-xl md:text-3xl font-bold text-white mb-1 md:mb-2">55.000+</div>
-            <div className="text-white opacity-80 text-xs md:text-sm">m2 Construidos</div>
+            <div className="text-white opacity-80 text-xs md:text-sm">m² Construidos</div>
           </div>
         </div>
       </div>
