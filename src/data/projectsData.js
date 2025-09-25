@@ -6,7 +6,7 @@ export const projectsData = {
     title: 'Casa habitación ecológica',
     subtitle: 'Proyecto Raíces de Santo Domingo ',
     description: 'Casa ubicada en Raíces de Santo Domingo, Provincia de San Antonio, 5ta Region de Valparaíso. Ecológica con tecnologías verdes y reutilizacion de agua, sin agregar componentes quimicos dañinos para la naturaleza, 100% auto-sustentable.',
-    imageCount: 52,
+    imageCount: 51,
     area: '175 m²',
     type: 'Casa unifamiliar',
     year: '2024',
