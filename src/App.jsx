@@ -100,6 +100,7 @@ export default function App() {
           <Route path="/inicio/proyecto-proyecto-5" element={<ProjectDetail />} />
           <Route path="/inicio/proyecto-proyecto-6" element={<ProjectDetail />} />
           <Route path="/inicio/proyecto-proyecto-7" element={<ProjectDetail />} />
+          <Route path="/inicio/proyecto-proyecto-8" element={<ProjectDetail />} />
           
           {/* Redirects y rutas de fallback */}
           <Route path="/perfil" element={<Navigate to="/" replace />} />

@@ -311,10 +311,6 @@ const ProjectInfo = ({ project }) => (
           <span className="text-sm text-gray-500">Tipo</span>
           <p className="font-semibold text-title">{project.type}</p>
         </div>
-        <div>
-          <span className="text-sm text-gray-500">Imágenes</span>
-          <p className="font-semibold text-title">{project.imageCount} fotos</p>
-        </div>
       </div>
     </div>
 
