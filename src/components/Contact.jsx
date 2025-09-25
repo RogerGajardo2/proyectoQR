@@ -203,7 +203,7 @@ export default function Contact(){
                 {status.type==='loading' ? 'Enviando…' : 'Enviar'}
               </Button>
               
-              <div className={`text-sm ${status.type==='error'?'text-red-600':status.type==='ok'?'text-green-600':'text-text'}`}>
+              <div className={`text-sm ${status.type==='error'?'text-red-600':status.type==='ok'?'text-subtitle':'text-text'}`}>
                 {status.msg}
               </div>
             </form>
