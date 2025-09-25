@@ -52,7 +52,7 @@ const ProjectCard = ({ project, onProjectClick }) => {
 
       {/* Información del proyecto */}
       <div className="p-6">
-        <h3 className="text-title text-xl font-bold mb-2 group-hover:text-blue-600 transition-colors">
+        <h3 className="text-title text-xl font-bold mb-2 group-hover:text-subtitle transition-colors">
           {project.title}
         </h3>
         <p className="text-text text-sm mb-4 line-clamp-2">
