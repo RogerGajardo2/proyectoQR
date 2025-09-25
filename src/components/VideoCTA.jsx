@@ -16,7 +16,7 @@ export default function VideoCTA(){
       <div className="container text-center text-white relative z-30" data-reveal>
         <h2 className="text-3xl md:text-4xl font-bold">¿Listo para construir tu próximo proyecto?</h2>
         <p className="mt-2">Hablemos y demos el primer paso hoy.</p>
-        <Button className="mt-4" onClick={()=>go('contacto')}>Ir a contáctanos</Button>
+        <Button className="mt-4" onClick={()=>go('contacto')}>¡Habla con nosotros!</Button>
       </div>
     </section>
   )

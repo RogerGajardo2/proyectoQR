@@ -180,22 +180,6 @@ export default function ProjectsList() {
           </div>
         </div>
 
-        {/* Estadísticas rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12" data-reveal>
-          <div className="bg-white rounded-2xl p-6 text-center shadow-soft">
-            <div className="text-3xl font-bold text-blue-600 mb-2">{allProjects.length}</div>
-            <div className="text-gray-600">Proyectos completados</div>
-          </div>
-          <div className="bg-white rounded-2xl p-6 text-center shadow-soft">
-            <div className="text-3xl font-bold text-green-600 mb-2">100%</div>
-            <div className="text-gray-600">Satisfacción del cliente</div>
-          </div>
-          <div className="bg-white rounded-2xl p-6 text-center shadow-soft">
-            <div className="text-3xl font-bold text-purple-600 mb-2">{new Date().getFullYear() - 2010}+</div>
-            <div className="text-gray-600">Años de experiencia</div>
-          </div>
-        </div>
-
         {/* Filtros */}
         <ProjectFilters
           filters={availableFilters}
