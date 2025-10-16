@@ -42,10 +42,10 @@ export default function Footer(){
   const circle = 'w-11 h-11 grid place-items-center rounded-full border btn-gold bg-white text-title shadow-soft transition hover:bg-title hover:text-white'
   
   return (
-    <footer className="fixed bottom-0 inset-x-0 z-[9999] border-t border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 no-glass" 
+    <footer className="bottom-0 inset-x-0 z-[9999] border-t border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 no-glass" 
             style={{ 
               zIndex: 9999,
-              position: 'fixed',
+              position: 'static',
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)'
