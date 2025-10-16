@@ -1,160 +1,115 @@
-// src/components/admin/AdminCodes/AdminLogin.jsx
-import { useState } from 'react'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+// src/components/admin/AdminCodes/index.jsx
+import { useState, useEffect } from 'react'
+import { signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../../lib/firebase'
-import Button from '../../ui/Button'
-import { SecurityManager, loginRateLimiter } from '../../../utils/security'
+import { loginRateLimiter } from '../../../utils/security'
 import { logger } from '../../../utils/logger'
+import { ReviewProvider } from '../../../contexts/ReviewContext'
+import { CodeProvider } from '../../../contexts/CodeContext'
 
-export default function AdminLogin() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loginError, setLoginError] = useState('')
-  const [loggingIn, setLoggingIn] = useState(false)
+import AdminLogin from './AdminLogin'
+import { AdminHeader, AdminTabs, ImportMessage } from './AdminComponents'
+import CodesTab from './CodesTab'
+import ReviewsTab from './ReviewsTab'
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
-    
-    if (!email || !password) {
-      setLoginError('Por favor completa todos los campos')
-      return
-    }
+export default function AdminCodes() {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('codes')
+  const [importMessage, setImportMessage] = useState({ type: '', message: '' })
 
-    // Validar email
-    if (!SecurityManager.validateEmail(email)) {
-      setLoginError('Formato de email inválido')
-      return
-    }
-
-    // Verificar rate limiting
-    const limitCheck = loginRateLimiter.checkLimit(email)
-    
-    if (!limitCheck.allowed) {
-      const resetTime = new Date(limitCheck.resetTime)
-      const minutes = Math.ceil((limitCheck.resetTime - Date.now()) / 60000)
-      setLoginError(`Demasiados intentos fallidos. Intenta en ${minutes} minuto(s)`)
-      logger.warn('Login bloqueado por rate limit', { email, resetTime })
-      return
-    }
-
-    setLoggingIn(true)
-    setLoginError('')
-
-    try {
-      await signInWithEmailAndPassword(auth, email, password)
-      loginRateLimiter.reset(email)
-      logger.info('Login exitoso', email)
-    } catch (error) {
-      loginRateLimiter.increment(email)
-      logger.error('Error de login', { email, error: error.code })
+  // Escuchar cambios en el estado de autenticación
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser)
+      setLoading(false)
       
-      const remaining = loginRateLimiter.checkLimit(email).remainingAttempts
-      
-      switch (error.code) {
-        case 'auth/invalid-email':
-          setLoginError('Correo electrónico inválido')
-          break
-        case 'auth/user-disabled':
-          setLoginError('Usuario deshabilitado')
-          break
-        case 'auth/user-not-found':
-          setLoginError(`Credenciales incorrectas. ${remaining} intentos restantes`)
-          break
-        case 'auth/wrong-password':
-          setLoginError(`Credenciales incorrectas. ${remaining} intentos restantes`)
-          break
-        case 'auth/too-many-requests':
-          setLoginError('Demasiados intentos fallidos. Intenta más tarde.')
-          break
-        case 'auth/network-request-failed':
-          setLoginError('Error de red. Verifica tu conexión.')
-          break
-        case 'auth/invalid-credential':
-          setLoginError(`Credenciales incorrectas. ${remaining} intentos restantes`)
-          break
-        default:
-          setLoginError('Error al iniciar sesión. Intenta nuevamente.')
+      if (currentUser) {
+        logger.info('Usuario autenticado', currentUser.email)
+      } else {
+        logger.info('Usuario no autenticado')
       }
-    } finally {
-      setLoggingIn(false)
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  // Limpiar rate limiter periódicamente
+  useEffect(() => {
+    const cleanup = setInterval(() => {
+      loginRateLimiter.cleanup()
+    }, 5 * 60 * 1000)
+
+    return () => clearInterval(cleanup)
+  }, [])
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      showImportMessage('success', 'Sesión cerrada correctamente')
+      logger.info('Logout exitoso')
+    } catch (error) {
+      logger.error('Error al cerrar sesión', error)
+      showImportMessage('error', 'Error al cerrar sesión')
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-3">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900">Panel de Administración</h2>
+  const showImportMessage = (type, message) => {
+    setImportMessage({ type, message })
+    setTimeout(() => {
+      setImportMessage({ type: '', message: '' })
+    }, 5000)
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+          <p className="mt-4 text-gray-600">Verificando autenticación...</p>
         </div>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block font-semibold text-gray-700 mb-2">
-              Correo electrónico
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value)
-                setLoginError('')
-              }}
-              disabled={loggingIn}
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              placeholder="admin@proconing.cl"
-              autoComplete="email"
-              maxLength={100}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block font-semibold text-gray-700 mb-2">
-              Contraseña
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value)
-                setLoginError('')
-              }}
-              disabled={loggingIn}
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              placeholder="••••••••"
-              autoComplete="current-password"
-              maxLength={100}
-            />
-          </div>
-
-          {loginError && (
-            <div className="p-3 bg-red-100 border border-red-300 rounded-lg">
-              <p className="text-red-800 text-sm">{loginError}</p>
-            </div>
-          )}
-
-          <Button 
-            type="submit" 
-            className="w-full justify-center"
-            disabled={loggingIn}
-          >
-            {loggingIn ? 'Iniciando sesión...' : 'Iniciar sesión'}
-          </Button>
-
-          <a 
-            className="block text-center hover:opacity-70 transition underline text-sm text-gray-600 mt-4"
-            onClick={() => window.location.href = '/#/inicio'}
-          >
-            ← Volver al sitio
-          </a>
-        </form>
       </div>
-    </div>
+    )
+  }
+
+  // Login screen - SOLO si NO está autenticado
+  if (!user) {
+    return <AdminLogin />
+  }
+
+  // Admin dashboard - SOLO si ESTÁ autenticado
+  return (
+    <CodeProvider>
+      <ReviewProvider>
+        <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+          <div className="max-w-7xl mx-auto">
+            {/* Mensaje de importación */}
+            <ImportMessage message={importMessage} />
+
+            {/* Header */}
+            <AdminHeader 
+              user={user} 
+              onLogout={handleLogout} 
+            />
+
+            {/* Tabs */}
+            <AdminTabs 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+            />
+
+            {/* Contenido según tab activo */}
+            <div className="mt-6">
+              {activeTab === 'codes' ? (
+                <CodesTab showImportMessage={showImportMessage} />
+              ) : (
+                <ReviewsTab showImportMessage={showImportMessage} />
+              )}
+            </div>
+          </div>
+        </div>
+      </ReviewProvider>
+    </CodeProvider>
   )
 }

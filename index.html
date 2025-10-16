@@ -21,10 +21,9 @@
     
     <!-- Security Headers -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     
-    <!-- Content Security Policy - MEJORADA Y MÁS SEGURA -->
+    <!-- Content Security Policy - CORREGIDO PARA FIREBASE AUTH -->
     <meta 
       http-equiv="Content-Security-Policy" 
       content="
@@ -51,15 +50,8 @@
           https://accounts.google.com;
         base-uri 'self';
         form-action 'self' https://api.web3forms.com;
-        frame-ancestors 'none';
         upgrade-insecure-requests;
       "
-    />
-    
-    <!-- Permissions Policy -->
-    <meta 
-      http-equiv="Permissions-Policy" 
-      content="geolocation=(), microphone=(), camera=(), payment=()" 
     />
     
     <!-- Preconnect to external domains -->
