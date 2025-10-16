@@ -416,7 +416,7 @@ export default function Contact(){
                 <span className="text-2xl">📧</span>
                 <div>
                   <p className="text-xs text-gray-500">Email</p>
-                  <a href="mailto:contacto@proconing.cl" className="text-subtitle font-semibold hover:underline">
+                  <a className="text-subtitle font-semibold">
                     contacto@proconing.cl
                   </a>
                 </div>
@@ -425,16 +425,9 @@ export default function Contact(){
                 <span className="text-2xl">📱</span>
                 <div>
                   <p className="text-xs text-gray-500">Teléfono</p>
-                  <a href="tel:+56973495086" className="text-subtitle font-semibold hover:underline">
+                  <a className="text-subtitle font-semibold">
                     +569 7349 5086
                   </a>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <span className="text-2xl">⏰</span>
-                <div>
-                  <p className="text-xs text-gray-500">Horario de atención</p>
-                  <p className="text-gray-700 font-medium">Lun - Vie: 9:00 - 18:00</p>
                 </div>
               </div>
             </div>

@@ -1,85 +1,10 @@
-// src/components/AdminCodes.jsx (CON FIREBASE AUTHENTICATION)
+// src/components/AdminCodes.jsx - VERSIÓN MEJORADA CON SEGURIDAD
 import { useState, useEffect, useRef } from 'react'
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../config/firebase'
 import Button from './ui/Button'
-
-// ==================== UTILIDADES DE SEGURIDAD ====================
-
-class SecurityManager {
-  static sanitizeInput(input, maxLength = 500) {
-    if (typeof input !== 'string') return ''
-    
-    return input
-      .trim()
-      .slice(0, maxLength)
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/javascript:/gi, '')
-      .replace(/on\w+\s*=/gi, '')
-  }
-
-  static validateImportedData(data, type) {
-    if (!data || typeof data !== 'object') {
-      throw new Error('Formato de datos inválido')
-    }
-
-    if (type === 'codes') {
-      if (!Array.isArray(data.codes)) {
-        throw new Error('El archivo debe contener un array de códigos')
-      }
-
-      return data.codes.filter(code => {
-        return (
-          code &&
-          typeof code === 'object' &&
-          typeof code.code === 'string' &&
-          code.code.length > 0 &&
-          code.code.length <= 50 &&
-          /^[A-Z0-9]+$/.test(code.code) &&
-          typeof code.createdAt === 'string'
-        )
-      }).map(code => ({
-        code: this.sanitizeInput(code.code, 50),
-        clientName: this.sanitizeInput(code.clientName || 'Sin nombre', 100),
-        createdAt: code.createdAt,
-        used: false
-      }))
-    }
-
-    if (type === 'reviews') {
-      if (!Array.isArray(data.reviews)) {
-        throw new Error('El archivo debe contener un array de reseñas')
-      }
-
-      return data.reviews.filter(review => {
-        return (
-          review &&
-          typeof review === 'object' &&
-          typeof review.name === 'string' &&
-          review.name.length > 0 &&
-          review.name.length <= 100 &&
-          typeof review.rating === 'number' &&
-          review.rating >= 1 &&
-          review.rating <= 5 &&
-          typeof review.comment === 'string' &&
-          review.comment.length >= 10 &&
-          review.comment.length <= 1000 &&
-          typeof review.code === 'string' &&
-          /^[A-Z0-9]+$/.test(review.code)
-        )
-      }).map(review => ({
-        name: this.sanitizeInput(review.name, 100),
-        rating: parseInt(review.rating),
-        comment: this.sanitizeInput(review.comment, 1000),
-        project: this.sanitizeInput(review.project || '', 200),
-        date: review.date || new Date().toISOString(),
-        code: this.sanitizeInput(review.code, 50)
-      }))
-    }
-
-    throw new Error('Tipo de datos desconocido')
-  }
-}
+import { SecurityManager, loginRateLimiter } from '../utils/security'
+import { logger } from '../utils/logger'
 
 // ==================== COMPONENTE PRINCIPAL ====================
 
@@ -118,20 +43,41 @@ export default function AdminCodes() {
       setLoading(false)
       if (currentUser) {
         loadAllData()
+        logger.info('Usuario autenticado', currentUser.email)
       }
     })
 
     return () => unsubscribe()
   }, [])
 
+  // Limpiar rate limiter periódicamente
+  useEffect(() => {
+    const cleanup = setInterval(() => {
+      loginRateLimiter.cleanup()
+    }, 5 * 60 * 1000) // Cada 5 minutos
+
+    return () => clearInterval(cleanup)
+  }, [])
+
   const loadAllData = () => {
-    const savedCodes = JSON.parse(localStorage.getItem('proconing_codes') || '[]')
-    const savedUsedCodes = JSON.parse(localStorage.getItem('proconing_used_codes') || '[]')
-    const savedReviews = JSON.parse(localStorage.getItem('proconing_reviews') || '[]')
-    
-    setCodes(savedCodes)
-    setUsedCodes(savedUsedCodes)
-    setReviews(savedReviews)
+    try {
+      const savedCodes = JSON.parse(localStorage.getItem('proconing_codes') || '[]')
+      const savedUsedCodes = JSON.parse(localStorage.getItem('proconing_used_codes') || '[]')
+      const savedReviews = JSON.parse(localStorage.getItem('proconing_reviews') || '[]')
+      
+      setCodes(savedCodes)
+      setUsedCodes(savedUsedCodes)
+      setReviews(savedReviews)
+      
+      logger.info('Datos cargados', {
+        codes: savedCodes.length,
+        usedCodes: savedUsedCodes.length,
+        reviews: savedReviews.length
+      })
+    } catch (error) {
+      logger.error('Error cargando datos', error)
+      showImportMessage('error', 'Error al cargar datos almacenados')
+    }
   }
 
   const handleLogin = async (e) => {
@@ -142,16 +88,37 @@ export default function AdminCodes() {
       return
     }
 
+    // Validar email
+    if (!SecurityManager.validateEmail(email)) {
+      setLoginError('Formato de email inválido')
+      return
+    }
+
+    // Verificar rate limiting
+    const limitCheck = loginRateLimiter.checkLimit(email)
+    
+    if (!limitCheck.allowed) {
+      const resetTime = new Date(limitCheck.resetTime)
+      const minutes = Math.ceil((limitCheck.resetTime - Date.now()) / 60000)
+      setLoginError(`Demasiados intentos fallidos. Intenta en ${minutes} minuto(s)`)
+      logger.warn('Login bloqueado por rate limit', { email, resetTime })
+      return
+    }
+
     setLoggingIn(true)
     setLoginError('')
 
     try {
       await signInWithEmailAndPassword(auth, email, password)
-      // El onAuthStateChanged manejará el cambio de estado
+      loginRateLimiter.reset(email) // Reset en login exitoso
       setEmail('')
       setPassword('')
+      logger.info('Login exitoso', email)
     } catch (error) {
-      console.error('Error de login:', error)
+      loginRateLimiter.increment(email)
+      logger.error('Error de login', { email, error: error.code })
+      
+      const remaining = loginRateLimiter.checkLimit(email).remainingAttempts
       
       switch (error.code) {
         case 'auth/invalid-email':
@@ -161,16 +128,19 @@ export default function AdminCodes() {
           setLoginError('Usuario deshabilitado')
           break
         case 'auth/user-not-found':
-          setLoginError('Usuario no encontrado')
+          setLoginError(`Credenciales incorrectas. ${remaining} intentos restantes`)
           break
         case 'auth/wrong-password':
-          setLoginError('Contraseña incorrecta')
+          setLoginError(`Credenciales incorrectas. ${remaining} intentos restantes`)
           break
         case 'auth/too-many-requests':
           setLoginError('Demasiados intentos fallidos. Intenta más tarde.')
           break
         case 'auth/network-request-failed':
           setLoginError('Error de red. Verifica tu conexión.')
+          break
+        case 'auth/invalid-credential':
+          setLoginError(`Credenciales incorrectas. ${remaining} intentos restantes`)
           break
         default:
           setLoginError('Error al iniciar sesión. Intenta nuevamente.')
@@ -184,8 +154,9 @@ export default function AdminCodes() {
     try {
       await signOut(auth)
       showImportMessage('success', 'Sesión cerrada correctamente')
+      logger.info('Logout exitoso')
     } catch (error) {
-      console.error('Error al cerrar sesión:', error)
+      logger.error('Error al cerrar sesión', error)
       showImportMessage('error', 'Error al cerrar sesión')
     }
   }
@@ -203,12 +174,30 @@ export default function AdminCodes() {
     const file = e.target.files[0]
     if (!file) return
 
-    if (file.size > 1024 * 1024) {
-      showImportMessage('error', 'El archivo es demasiado grande (máximo 1MB)')
+    // Validar tipo de archivo
+    if (file.type !== 'application/json') {
+      showImportMessage('error', 'Solo se permiten archivos JSON')
+      e.target.value = ''
+      return
+    }
+
+    // Validar tamaño de archivo (1MB máximo)
+    const MAX_SIZE = 1024 * 1024
+    if (file.size > MAX_SIZE) {
+      showImportMessage('error', `El archivo es demasiado grande. Máximo: ${MAX_SIZE / 1024}KB`)
+      e.target.value = ''
+      return
+    }
+
+    // Validar nombre de archivo
+    if (!SecurityManager.isSafeFilename(file.name)) {
+      showImportMessage('error', 'Nombre de archivo no válido')
+      e.target.value = ''
       return
     }
 
     const reader = new FileReader()
+    
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target.result)
@@ -238,13 +227,15 @@ export default function AdminCodes() {
         }
 
         showImportMessage('success', `✓ ${validCodes.length} código(s) importado(s) correctamente`)
+        logger.info('Códigos importados', { count: validCodes.length })
       } catch (error) {
-        console.error('Error al importar códigos:', error)
+        logger.error('Error al importar códigos', error)
         showImportMessage('error', `Error: ${error.message}`)
       }
     }
 
     reader.onerror = () => {
+      logger.error('Error al leer archivo de códigos')
       showImportMessage('error', 'Error al leer el archivo')
     }
 
@@ -256,12 +247,30 @@ export default function AdminCodes() {
     const file = e.target.files[0]
     if (!file) return
 
-    if (file.size > 2 * 1024 * 1024) {
-      showImportMessage('error', 'El archivo es demasiado grande (máximo 2MB)')
+    // Validar tipo de archivo
+    if (file.type !== 'application/json') {
+      showImportMessage('error', 'Solo se permiten archivos JSON')
+      e.target.value = ''
+      return
+    }
+
+    // Validar tamaño de archivo (2MB máximo para reseñas)
+    const MAX_SIZE = 2 * 1024 * 1024
+    if (file.size > MAX_SIZE) {
+      showImportMessage('error', `El archivo es demasiado grande. Máximo: ${MAX_SIZE / 1024}KB`)
+      e.target.value = ''
+      return
+    }
+
+    // Validar nombre de archivo
+    if (!SecurityManager.isSafeFilename(file.name)) {
+      showImportMessage('error', 'Nombre de archivo no válido')
+      e.target.value = ''
       return
     }
 
     const reader = new FileReader()
+    
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target.result)
@@ -287,13 +296,15 @@ export default function AdminCodes() {
         setUsedCodes(uniqueUsedCodes)
 
         showImportMessage('success', `✓ ${validReviews.length} reseña(s) importada(s) correctamente`)
+        logger.info('Reseñas importadas', { count: validReviews.length })
       } catch (error) {
-        console.error('Error al importar reseñas:', error)
+        logger.error('Error al importar reseñas', error)
         showImportMessage('error', `Error: ${error.message}`)
       }
     }
 
     reader.onerror = () => {
+      logger.error('Error al leer archivo de reseñas')
       showImportMessage('error', 'Error al leer el archivo')
     }
 
@@ -325,6 +336,11 @@ export default function AdminCodes() {
       return
     }
 
+    if (code.length < 4) {
+      alert('El código debe tener al menos 4 caracteres')
+      return
+    }
+
     if (codes.some(c => c.code === code)) {
       alert('Este código ya existe')
       return
@@ -344,6 +360,8 @@ export default function AdminCodes() {
     setNewCode('')
     setClientName('')
     setShowAddForm(false)
+    
+    logger.info('Código agregado', { code })
   }
 
   const handleDeleteCode = (codeToDelete) => {
@@ -352,6 +370,8 @@ export default function AdminCodes() {
     const updatedCodes = codes.filter(c => c.code !== codeToDelete)
     setCodes(updatedCodes)
     localStorage.setItem('proconing_codes', JSON.stringify(updatedCodes))
+    
+    logger.info('Código eliminado', { code: codeToDelete })
   }
 
   // ==================== FUNCIONES DE RESEÑAS ====================
@@ -369,6 +389,7 @@ export default function AdminCodes() {
     setUsedCodes(updatedUsedCodes)
     localStorage.setItem('proconing_used_codes', JSON.stringify(updatedUsedCodes))
     
+    logger.info('Reseña eliminada', { code: review.code, name: review.name })
     alert('Reseña eliminada. El código ha sido liberado para reutilización.')
   }
 
@@ -402,40 +423,64 @@ export default function AdminCodes() {
     localStorage.setItem('proconing_reviews', JSON.stringify(updatedReviews))
     setShowEditModal(false)
     setEditingReview(null)
+    
+    logger.info('Reseña editada', { code: editingReview.code })
   }
 
   const handleExportReviews = () => {
-    const data = {
-      reviews,
-      exportDate: new Date().toISOString(),
-      totalReviews: reviews.length,
-      version: '1.0'
+    try {
+      const data = {
+        reviews,
+        exportDate: new Date().toISOString(),
+        totalReviews: reviews.length,
+        version: '1.0'
+      }
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `proconing-reviews-${new Date().toISOString().split('T')[0]}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      
+      logger.info('Reseñas exportadas', { count: reviews.length })
+    } catch (error) {
+      logger.error('Error al exportar reseñas', error)
+      showImportMessage('error', 'Error al exportar reseñas')
     }
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `proconing-reviews-${new Date().toISOString().split('T')[0]}.json`
-    a.click()
-    URL.revokeObjectURL(url)
   }
 
   const handleExportCodesData = () => {
-    const data = {
-      codes,
-      usedCodes,
-      exportDate: new Date().toISOString(),
-      version: '1.0'
+    try {
+      // Sanitizar datos antes de exportar
+      const sanitizedCodes = codes.map(code => ({
+        code: code.code,
+        clientName: code.clientName.substring(0, 100),
+        createdAt: code.createdAt,
+        used: usedCodes.includes(code.code)
+      }))
+
+      const data = {
+        codes: sanitizedCodes,
+        usedCodes,
+        exportDate: new Date().toISOString(),
+        version: '1.0'
+      }
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `proconing-codes-${new Date().toISOString().split('T')[0]}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      
+      logger.info('Códigos exportados', { count: codes.length })
+    } catch (error) {
+      logger.error('Error al exportar códigos', error)
+      showImportMessage('error', 'Error al exportar códigos')
     }
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `proconing-codes-${new Date().toISOString().split('T')[0]}.json`
-    a.click()
-    URL.revokeObjectURL(url)
   }
 
   const filteredReviews = reviews.filter(review => {
@@ -495,6 +540,7 @@ export default function AdminCodes() {
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                 placeholder="admin@proconing.cl"
                 autoComplete="email"
+                maxLength={100}
               />
             </div>
 
@@ -514,6 +560,7 @@ export default function AdminCodes() {
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                 placeholder="••••••••"
                 autoComplete="current-password"
+                maxLength={100}
               />
             </div>
 
@@ -669,6 +716,7 @@ export default function AdminCodes() {
                         value={newCode}
                         onChange={(e) => setNewCode(e.target.value.toUpperCase())}
                         placeholder="PROC2024"
+                        maxLength={50}
                         className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono"
                       />
                     </div>
@@ -679,6 +727,7 @@ export default function AdminCodes() {
                         value={clientName}
                         onChange={(e) => setClientName(e.target.value)}
                         placeholder="Juan Pérez"
+                        maxLength={100}
                         className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -690,7 +739,7 @@ export default function AdminCodes() {
               )}
             </div>
 
-            {/* Listas de códigos - igual que antes */}
+            {/* Lista de códigos disponibles */}
             <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 Códigos disponibles ({availableCodes.length})
@@ -731,14 +780,87 @@ export default function AdminCodes() {
                 <p className="text-gray-500 text-center py-8">No hay códigos disponibles</p>
               )}
             </div>
+
+            {/* Lista de códigos usados */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Códigos usados ({usedCodesData.length})
+              </h2>
+              {usedCodesData.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Código</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cliente</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Creado</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {usedCodesData.map((code) => (
+                        <tr key={code.code} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 font-mono font-semibold text-gray-600">{code.code}</td>
+                          <td className="px-4 py-3 text-gray-900">{code.clientName}</td>
+                          <td className="px-4 py-3 text-gray-600 text-sm">
+                            {new Date(code.createdAt).toLocaleDateString('es-CL')}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              Usado
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No hay códigos usados</p>
+              )}
+            </div>
           </>
         )}
 
         {/* TAB DE RESEÑAS */}
         {activeTab === 'reviews' && (
           <>
+            {/* Estadísticas de reseñas */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-xl shadow p-6">
+                <p className="text-gray-600 text-sm font-medium">Total reseñas</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{reviews.length}</p>
+              </div>
+              <div className="bg-white rounded-xl shadow p-6">
+                <p className="text-gray-600 text-sm font-medium">Promedio</p>
+                <p className="text-3xl font-bold text-yellow-600 mt-1">
+                  {reviews.length > 0 
+                    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+                    : '0.0'
+                  } ★
+                </p>
+              </div>
+              <div className="bg-white rounded-xl shadow p-6">
+                <p className="text-gray-600 text-sm font-medium">5 estrellas</p>
+                <p className="text-3xl font-bold text-green-600 mt-1">
+                  {reviews.filter(r => r.rating === 5).length}
+                </p>
+              </div>
+              <div className="bg-white rounded-xl shadow p-6">
+                <p className="text-gray-600 text-sm font-medium">Últimos 30 días</p>
+                <p className="text-3xl font-bold text-blue-600 mt-1">
+                  {reviews.filter(r => {
+                    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+                    return new Date(r.date).getTime() > thirtyDaysAgo
+                  }).length}
+                </p>
+              </div>
+            </div>
+
+            {/* Acciones de reseñas */}
             <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-              <div className="flex flex-wrap gap-3">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Acciones</h2>
+              <div className="flex flex-wrap gap-3 mb-4">
                 <Button onClick={handleExportReviews} variant="outline">
                   Exportar reseñas
                 </Button>
@@ -758,48 +880,192 @@ export default function AdminCodes() {
                 onChange={handleImportReviews}
                 className="hidden"
               />
+
+              {/* Filtros */}
+              <div className="grid md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Buscar por nombre, comentario o proyecto..."
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por rating</label>
+                  <select
+                    value={filterRating}
+                    onChange={(e) => setFilterRating(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="5">5 estrellas</option>
+                    <option value="4">4 estrellas</option>
+                    <option value="3">3 estrellas</option>
+                    <option value="2">2 estrellas</option>
+                    <option value="1">1 estrella</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
-            {/* Lista de reseñas - igual que antes */}
+            {/* Lista de reseñas */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Reseñas ({reviews.length})
+                Reseñas ({filteredReviews.length})
               </h2>
-              {reviews.length > 0 ? (
+              {filteredReviews.length > 0 ? (
                 <div className="space-y-4">
-                  {reviews.map((review, index) => (
-                    <div key={index} className="border border-gray-200 rounded-xl p-4">
-                      <div className="flex justify-between">
-                        <div>
-                          <h3 className="font-bold">{review.name}</h3>
-                          <p className="text-sm text-gray-600">Rating: {review.rating}★</p>
-                          <p className="mt-2">{review.comment}</p>
+                  {filteredReviews.map((review, index) => (
+                    <div key={index} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-gray-900">{review.name}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="flex">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <svg
+                                  key={star}
+                                  className={`w-4 h-4 ${star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              ))}
+                            </div>
+                            <span className="text-sm text-gray-500">
+                              {new Date(review.date).toLocaleDateString('es-CL')}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleEditReview(index)}
-                            className="text-blue-600 hover:underline"
+                            onClick={() => handleEditReview(reviews.findIndex(r => r === review))}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 rounded hover:bg-blue-50"
                           >
                             Editar
                           </button>
                           <button
-                            onClick={() => handleDeleteReview(index)}
-                            className="text-red-600 hover:underline"
+                            onClick={() => handleDeleteReview(reviews.findIndex(r => r === review))}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 rounded hover:bg-red-50"
                           >
                             Eliminar
                           </button>
                         </div>
                       </div>
+                      
+                      <p className="text-gray-700 mt-2 leading-relaxed">{review.comment}</p>
+                      
+                      <div className="flex gap-4 mt-3 text-sm text-gray-500">
+                        {review.project && (
+                          <span className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            {review.project}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                          </svg>
+                          {review.code}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">No hay reseñas</p>
+                <p className="text-gray-500 text-center py-8">No hay reseñas que coincidan con los filtros</p>
               )}
             </div>
           </>
         )}
       </div>
+
+      {/* Modal de edición de reseña */}
+      {showEditModal && editingReview && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Editar Reseña</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+                <input
+                  type="text"
+                  value={editingReview.name}
+                  onChange={(e) => setEditingReview({ ...editingReview, name: e.target.value })}
+                  maxLength={100}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                <select
+                  value={editingReview.rating}
+                  onChange={(e) => setEditingReview({ ...editingReview, rating: parseInt(e.target.value) })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={5}>5 estrellas</option>
+                  <option value={4}>4 estrellas</option>
+                  <option value={3}>3 estrellas</option>
+                  <option value={2}>2 estrellas</option>
+                  <option value={1}>1 estrella</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Comentario</label>
+                <textarea
+                  value={editingReview.comment}
+                  onChange={(e) => setEditingReview({ ...editingReview, comment: e.target.value })}
+                  maxLength={1000}
+                  rows={4}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Proyecto (opcional)</label>
+                <input
+                  type="text"
+                  value={editingReview.project || ''}
+                  onChange={(e) => setEditingReview({ ...editingReview, project: e.target.value })}
+                  maxLength={200}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowEditModal(false)}
+                variant="outline"
+                className="flex-1 justify-center"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSaveEdit}
+                className="flex-1 justify-center"
+              >
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
