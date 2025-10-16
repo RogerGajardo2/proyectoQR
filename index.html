@@ -21,16 +21,19 @@
     
     <!-- Security Headers -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-Frame-Options" content="DENY" />
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     
-    <!-- Content Security Policy -->
+    <!-- Content Security Policy - ACTUALIZADO para Firebase -->
     <meta 
       http-equiv="Content-Security-Policy" 
       content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' 
+          https://cdnjs.cloudflare.com 
+          https://apis.google.com 
+          https://www.gstatic.com 
+          https://*.googleapis.com;
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: https: blob:;
         font-src 'self' data:;
@@ -39,10 +42,17 @@
           https://*.googleapis.com 
           https://*.firebaseapp.com
           https://*.firebase.com
-          https://identitytoolkit.googleapis.com;
+          https://*.firebaseio.com
+          https://identitytoolkit.googleapis.com
+          https://firestore.googleapis.com
+          https://securetoken.googleapis.com
+          wss://*.firebaseio.com;
         media-src 'self' blob:;
         object-src 'none';
-        frame-src 'none';
+        frame-src 'self' 
+          https://*.firebaseapp.com 
+          https://*.google.com 
+          https://accounts.google.com;
         base-uri 'self';
         form-action 'self' https://api.web3forms.com;
         upgrade-insecure-requests;
@@ -52,10 +62,13 @@
     <!-- Preconnect to external domains -->
     <link rel="preconnect" href="https://api.web3forms.com" />
     <link rel="preconnect" href="https://firebase.googleapis.com" />
+    <link rel="preconnect" href="https://apis.google.com" />
+    <link rel="preconnect" href="https://www.gstatic.com" />
     
     <!-- DNS Prefetch -->
     <link rel="dns-prefetch" href="https://api.web3forms.com" />
     <link rel="dns-prefetch" href="https://firebase.googleapis.com" />
+    <link rel="dns-prefetch" href="https://apis.google.com" />
   </head>
   <body class="bg-white text-text">
     <noscript>

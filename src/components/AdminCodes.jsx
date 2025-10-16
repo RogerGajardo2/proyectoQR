@@ -520,7 +520,6 @@ export default function AdminCodes() {
               </svg>
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Panel de Administración</h2>
-            <p className="text-gray-600 mt-2">Autenticación segura con Firebase</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -577,12 +576,16 @@ export default function AdminCodes() {
             >
               {loggingIn ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </Button>
+            <br />
+            <br />
+            <a 
+              className="hover:opacity-70 transition underline"
+              onClick={() => window.location.href = '/#/inicio'}
+              variant="outline"
 
-            <div className="text-center text-xs text-gray-500 mt-4 space-y-1">
-              <p>🔐 Autenticación con Firebase</p>
-              <p>🔒 Conexión segura SSL/TLS</p>
-              <p>✅ Protección contra ataques</p>
-            </div>
+            >
+              ← Volver al sitio
+            </a>
           </form>
         </div>
       </div>
