@@ -1,9 +1,10 @@
-// src/data/projectsData.js - VERSIÓN MEJORADA CON VALIDACIÓN
+// src/data/projectsData.js - VERSIÓN MEJORADA CON CACHÉ Y GETTERS OPTIMIZADOS
 import { createProject } from './projectConfig'
 import { logger } from '../utils/logger'
 
-// Caché de proyectos validados
+// Caché de proyectos validados con timestamps
 const projectCache = new Map()
+const CACHE_DURATION = 10 * 60 * 1000 // 10 minutos
 
 export const projectsData = {
   'proyecto-5': createProject('proyecto-5', {
@@ -178,8 +179,6 @@ export const projectsData = {
 
 /**
  * Valida la estructura de un proyecto
- * @param {Object} project - Proyecto a validar
- * @returns {boolean} - true si es válido
  */
 const validateProjectStructure = (project) => {
   if (!project || typeof project !== 'object') {
@@ -187,7 +186,7 @@ const validateProjectStructure = (project) => {
     return false
   }
 
-  const requiredFields = ['id', 'title', 'description', 'imageCount', 'features', 'gallery', 'mainImage']
+  const requiredFields = ['id', 'title', 'description', 'imageCount', 'features']
   const missingFields = requiredFields.filter(field => !project[field])
 
   if (missingFields.length > 0) {
@@ -205,20 +204,22 @@ const validateProjectStructure = (project) => {
     return false
   }
 
-  if (!Array.isArray(project.gallery) || project.gallery.length === 0) {
-    logger.error('Galería vacía', { id: project.id })
-    return false
-  }
-
   return true
 }
 
 /**
- * Obtiene todos los proyectos validados
- * @returns {Array} - Array de proyectos
+ * Obtiene todos los proyectos validados con caché
  */
 export const getAllProjects = () => {
   try {
+    const cacheKey = 'all-projects'
+    const cached = projectCache.get(cacheKey)
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      logger.info('Proyectos cargados desde caché')
+      return cached.data
+    }
+
     const projects = Object.values(projectsData)
     const validProjects = projects.filter(validateProjectStructure)
     
@@ -229,6 +230,12 @@ export const getAllProjects = () => {
       })
     }
 
+    // Guardar en caché
+    projectCache.set(cacheKey, {
+      data: validProjects,
+      timestamp: Date.now()
+    })
+
     return validProjects
   } catch (error) {
     logger.error('Error obteniendo todos los proyectos', error)
@@ -237,30 +244,27 @@ export const getAllProjects = () => {
 }
 
 /**
- * Obtiene un proyecto por ID con validación
- * @param {string} id - ID del proyecto
- * @returns {Object|null} - Proyecto o null si no existe
+ * Obtiene un proyecto por ID con validación y caché
  */
 export const getProject = (id) => {
   try {
-    // Validar ID
     if (!id || typeof id !== 'string') {
       logger.error('ID de proyecto inválido', { id, type: typeof id })
       return null
     }
 
-    // Sanitizar ID para prevenir ataques
     const sanitizedId = id.trim().toLowerCase()
     
-    // Validar formato del ID
     if (!/^proyecto-[0-9]+$/.test(sanitizedId)) {
       logger.warn('Formato de ID de proyecto no válido', { id: sanitizedId })
       return null
     }
 
-    // Verificar si está en caché
-    if (projectCache.has(sanitizedId)) {
-      return projectCache.get(sanitizedId)
+    // Verificar caché
+    const cached = projectCache.get(sanitizedId)
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      logger.info('Proyecto cargado desde caché', { id: sanitizedId })
+      return cached.data
     }
 
     const project = projectsData[sanitizedId]
@@ -270,14 +274,16 @@ export const getProject = (id) => {
       return null
     }
 
-    // Validar estructura
     if (!validateProjectStructure(project)) {
       logger.error('Proyecto no pasó validación', { id: sanitizedId })
       return null
     }
 
     // Guardar en caché
-    projectCache.set(sanitizedId, project)
+    projectCache.set(sanitizedId, {
+      data: project,
+      timestamp: Date.now()
+    })
 
     return project
   } catch (error) {
@@ -287,15 +293,21 @@ export const getProject = (id) => {
 }
 
 /**
- * Obtiene slides para el carrusel con validación
- * @returns {Array} - Array de slides
+ * Obtiene slides para el carrusel con validación y caché
  */
 export const getCarouselSlides = () => {
   try {
+    const cacheKey = 'carousel-slides'
+    const cached = projectCache.get(cacheKey)
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      logger.info('Slides cargados desde caché')
+      return cached.data
+    }
+
     const allProjects = getAllProjects()
     
-    return allProjects.map(project => {
-      // Validar que mainImage existe
+    const slides = allProjects.map(project => {
       if (!project.mainImage) {
         logger.warn('Proyecto sin mainImage', { id: project.id })
         return null
@@ -308,7 +320,15 @@ export const getCarouselSlides = () => {
         title: project.title,
         imageCount: project.imageCount
       }
-    }).filter(Boolean) // Filtrar nulls
+    }).filter(Boolean)
+
+    // Guardar en caché
+    projectCache.set(cacheKey, {
+      data: slides,
+      timestamp: Date.now()
+    })
+
+    return slides
   } catch (error) {
     logger.error('Error obteniendo slides del carrusel', error)
     return []
@@ -317,8 +337,6 @@ export const getCarouselSlides = () => {
 
 /**
  * Busca proyectos por término
- * @param {string} searchTerm - Término de búsqueda
- * @returns {Array} - Proyectos que coinciden
  */
 export const searchProjects = (searchTerm) => {
   try {
@@ -352,8 +370,6 @@ export const searchProjects = (searchTerm) => {
 
 /**
  * Obtiene proyectos por tipo
- * @param {string} type - Tipo de proyecto
- * @returns {Array} - Proyectos del tipo especificado
  */
 export const getProjectsByType = (type) => {
   try {
@@ -383,7 +399,6 @@ export const clearProjectCache = () => {
 
 /**
  * Obtiene estadísticas de proyectos
- * @returns {Object} - Estadísticas
  */
 export const getProjectStats = () => {
   try {
@@ -404,7 +419,12 @@ export const getProjectStats = () => {
       totalImages,
       projectTypes,
       yearRange,
-      cachedProjects: projectCache.size
+      cachedProjects: projectCache.size,
+      cacheHealth: {
+        size: projectCache.size,
+        maxAge: CACHE_DURATION,
+        items: Array.from(projectCache.keys())
+      }
     }
   } catch (error) {
     logger.error('Error obteniendo estadísticas de proyectos', error)
@@ -426,7 +446,8 @@ if (typeof window !== 'undefined') {
     search: searchProjects,
     getByType: getProjectsByType,
     clearCache: clearProjectCache,
-    getStats: getProjectStats
+    getStats: getProjectStats,
+    cache: projectCache
   }
 }
 

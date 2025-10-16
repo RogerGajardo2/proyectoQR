@@ -1,9 +1,11 @@
-// src/components/ProjectDetail.jsx (CON NAVEGACIÓN EN LIGHTBOX Y MODIFICACIONES MOBILE)
+// src/components/ProjectDetail.jsx - OPTIMIZADO CON CACHÉ Y MEJOR RENDIMIENTO
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Button from './ui/Button'
-import { getProject } from '../data/projectsData'
+import LoadingSpinner from './LoadingSpinner'
+import useProjectCache from '../hooks/useProjectCache'
+import { logger } from '../utils/logger'
 
 // Componente simple para elemento de galería (imágenes más pequeñas)
 const SimpleGalleryItem = ({ item, index, onImageClick }) => {
@@ -146,10 +148,8 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
     const minSwipeDistance = 50
 
     if (distance > minSwipeDistance) {
-      // Swipe izquierda - siguiente imagen
       goToNext()
     } else if (distance < -minSwipeDistance) {
-      // Swipe derecha - imagen anterior
       goToPrevious()
     }
   }, [touchStart, touchEnd, goToNext, goToPrevious])
@@ -214,7 +214,7 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
           {currentIndex + 1} de {gallery.length}
         </div>
 
-        {/* Botón anterior - Modificado para mobile */}
+        {/* Botón anterior */}
         {hasPrevious && (
           <button
             onClick={(e) => {
@@ -230,7 +230,7 @@ const Lightbox = ({ currentIndex, gallery, onClose, onNavigate }) => {
           </button>
         )}
 
-        {/* Botón siguiente - Modificado para mobile */}
+        {/* Botón siguiente */}
         {hasNext && (
           <button
             onClick={(e) => {
@@ -346,8 +346,8 @@ export default function ProjectDetail() {
     return projectSegment || ''
   }, [location.pathname])
 
-  // Obtener proyecto usando la función centralizada
-  const project = useMemo(() => getProject(projectId), [projectId])
+  // Usar el hook de caché optimizado
+  const { project, loading, error } = useProjectCache(projectId)
 
   useEffect(() => {
     // Asegurar que el scroll funcione al cargar la página
@@ -369,11 +369,9 @@ export default function ProjectDetail() {
   }, [])
 
   const handleBackToProjects = useCallback(() => {
-    // Verificar si hay historial para volver
     if (window.history.length > 1) {
-      navigate(-1) // Ir a la página anterior
+      navigate(-1)
     } else {
-      // Fallback si no hay historial (acceso directo)
       navigate('/inicio/proyectos')
     }
   }, [navigate])
@@ -384,11 +382,41 @@ export default function ProjectDetail() {
 
   const handleViewMoreProjects = useCallback(() => {
     navigate('/inicio/proyectos')
-    // Hacer scroll al inicio de la página después de navegar
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }, 100)
   }, [navigate])
+
+  // Estado de carga
+  if (loading) {
+    return (
+      <section className="py-16 scroll-mt-24">
+        <div className="container">
+          <LoadingSpinner fullScreen text="Cargando proyecto..." />
+        </div>
+      </section>
+    )
+  }
+
+  // Estado de error
+  if (error) {
+    return (
+      <section className="py-16 scroll-mt-24">
+        <div className="container text-center">
+          <div className="max-w-md mx-auto">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h1 className="text-title text-2xl font-bold mb-2">Error al cargar el proyecto</h1>
+            <p className="text-text mb-6">{error}</p>
+            <Button onClick={handleBackToProjects}>Volver a proyectos</Button>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   // Proyecto no encontrado
   if (!project) {
@@ -437,13 +465,13 @@ export default function ProjectDetail() {
           {/* Información del proyecto */}
           <ProjectInfo project={project} />
 
-          {/* Galería simple (sin verificación automática) */}
+          {/* Galería simple */}
           <SimpleGallery
             project={project}
             onImageClick={openLightbox}
           />
 
-          {/* CTA optimizado con botones centrados - SOLUCIÓN CORREGIDA */}
+          {/* CTA optimizado */}
           <div className="bg-white border border-line rounded-2xl shadow-soft p-8 text-center" data-reveal>
             <h3 className="text-title text-2xl font-bold mb-4">¿Tienes un proyecto similar?</h3>
             <p className="text-text mb-6 leading-relaxed max-w-2xl mx-auto">

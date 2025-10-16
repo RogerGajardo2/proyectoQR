@@ -1,6 +1,7 @@
-// src/contexts/ReviewContext.jsx - Context para Reseñas
+// src/contexts/ReviewContext.jsx - MEJORADO CON ERROR HANDLING
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import * as reviewService from '../services/reviewService'
+import { getErrorMessage } from '../utils/errorHandler'
 import { logger } from '../utils/logger'
 
 const ReviewContext = createContext()
@@ -26,17 +27,19 @@ export function ReviewProvider({ children }) {
       setLoading(true)
       setError(null)
       
-      const reviewsData = await reviewService.getReviews()
-      setReviews(reviewsData)
+      const [reviewsData, statsData] = await Promise.all([
+        reviewService.getReviews(),
+        reviewService.getReviewStats()
+      ])
       
-      // Calcular estadísticas
-      const statsData = await reviewService.getReviewStats()
+      setReviews(reviewsData)
       setStats(statsData)
       
       logger.info('Reseñas cargadas en contexto', { count: reviewsData.length })
     } catch (err) {
+      const errorMessage = getErrorMessage(err)
       logger.error('Error cargando reseñas en contexto', err)
-      setError(err.message)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -55,8 +58,9 @@ export function ReviewProvider({ children }) {
       logger.info('Reseña agregada en contexto', { id: newReview.id })
       return newReview
     } catch (err) {
+      const errorMessage = getErrorMessage(err)
       logger.error('Error agregando reseña en contexto', err)
-      throw err
+      throw new Error(errorMessage)
     }
   }, [])
 
@@ -74,8 +78,9 @@ export function ReviewProvider({ children }) {
       logger.info('Reseña actualizada en contexto', { id: reviewId })
       return updatedReview
     } catch (err) {
+      const errorMessage = getErrorMessage(err)
       logger.error('Error actualizando reseña en contexto', err)
-      throw err
+      throw new Error(errorMessage)
     }
   }, [])
 
@@ -92,8 +97,9 @@ export function ReviewProvider({ children }) {
       
       logger.info('Reseña eliminada en contexto', { id: reviewId })
     } catch (err) {
+      const errorMessage = getErrorMessage(err)
       logger.error('Error eliminando reseña en contexto', err)
-      throw err
+      throw new Error(errorMessage)
     }
   }, [])
 
@@ -134,6 +140,11 @@ export function ReviewProvider({ children }) {
     return filtered
   }, [reviews])
 
+  // Retry en caso de error
+  const retry = useCallback(() => {
+    loadReviews()
+  }, [loadReviews])
+
   const value = {
     reviews,
     loading,
@@ -143,7 +154,8 @@ export function ReviewProvider({ children }) {
     addReview,
     updateReview,
     deleteReview,
-    getFilteredReviews
+    getFilteredReviews,
+    retry
   }
 
   return (

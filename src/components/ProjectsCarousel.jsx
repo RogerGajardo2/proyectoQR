@@ -1,4 +1,4 @@
-// src/components/ProjectsCarousel.jsx - VERSIÓN OPTIMIZADA CON MEMOIZACIÓN
+// src/components/ProjectsCarousel.jsx - VERSIÓN OPTIMIZADA CON MEMOIZACIÓN MEJORADA
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from './ui/Button'
@@ -7,8 +7,9 @@ import { logger } from '../utils/logger'
 
 // ==================== COMPONENTES MEMOIZADOS ====================
 
-const CarouselSlide = memo(({ slide, onProjectClick }) => {
+const CarouselSlide = memo(({ slide, onProjectClick, isVisible }) => {
   const [imageError, setImageError] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false)
 
   if (imageError) {
     return (
@@ -24,11 +25,13 @@ const CarouselSlide = memo(({ slide, onProjectClick }) => {
         className="carousel-image" 
         src={slide.img} 
         alt={slide.caption}
-        loading="lazy"
+        loading={isVisible ? 'eager' : 'lazy'}
+        onLoad={() => setImageLoaded(true)}
         onError={() => {
           logger.warn('Error cargando imagen de carrusel', { slideId: slide.id })
           setImageError(true)
         }}
+        style={{ opacity: imageLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
       />
       
       <div className="absolute inset-0 bg-black/20 transition-all duration-300" />
@@ -48,7 +51,8 @@ const CarouselSlide = memo(({ slide, onProjectClick }) => {
     </div>
   )
 }, (prevProps, nextProps) => {
-  return prevProps.slide.id === nextProps.slide.id
+  return prevProps.slide.id === nextProps.slide.id && 
+         prevProps.isVisible === nextProps.isVisible
 })
 
 CarouselSlide.displayName = 'CarouselSlide'
@@ -109,6 +113,14 @@ export default function ProjectsCarousel() {
       return []
     }
   }, [])
+
+  // Determinar qué slides son visibles (para optimización de carga)
+  const visibleSlides = useMemo(() => {
+    if (slides.length === 0) return new Set()
+    const prev = (currentIndex - 1 + slides.length) % slides.length
+    const next = (currentIndex + 1) % slides.length
+    return new Set([prev, currentIndex, next])
+  }, [currentIndex, slides.length])
   
   // Función para navegar a un índice específico
   const goToSlide = useCallback((index) => {
@@ -320,6 +332,7 @@ export default function ProjectsCarousel() {
                   key={`${slide.id}-${index}`}
                   slide={slide}
                   onProjectClick={handleProjectClick}
+                  isVisible={visibleSlides.has(index)}
                 />
               ))}
             </div>

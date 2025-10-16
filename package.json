@@ -1,6 +1,6 @@
 {
   "name": "proconing-landing",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "description": "Sitio web corporativo para ProconIng con Firestore",
@@ -11,17 +11,36 @@
     "build": "vite build",
     "preview": "vite preview",
     "preview:gh": "vite preview --base /proyectoQR/ --strictPort --port 4174 --open /proyectoQR/",
+    
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest watch",
+    
     "lint": "eslint src --ext .js,.jsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext .js,.jsx --fix",
+    
     "audit": "npm audit --audit-level=moderate",
     "audit:fix": "npm audit fix",
+    
     "clean": "rm -rf node_modules dist .vite",
     "reinstall": "npm run clean && npm install",
-    "check": "npm run lint && npm run audit && npm run test:coverage"
+    
+    "check": "npm run lint && npm run audit && npm run test:coverage",
+    "analyze": "vite-bundle-visualizer",
+    
+    "validate:env": "node scripts/validate-env.js",
+    "setup:firebase": "node scripts/setup-firebase.js",
+    
+    "migrate:codes": "node scripts/migrate-codes.js",
+    "migrate:sample": "node scripts/migrate-codes.js --sample",
+    "migrate:csv": "node scripts/migrate-codes.js --csv=codes.csv",
+    "migrate:dry-run": "node scripts/migrate-codes.js --sample --dry-run",
+    
+    "clean:db": "node scripts/clean-database.js",
+    "clean:db:invalid": "node scripts/clean-database.js --invalid",
+    
+    "postinstall": "npm run validate:env"
   },
   "dependencies": {
     "firebase": "^12.4.0",
@@ -36,6 +55,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/ui": "^1.6.1",
     "autoprefixer": "^10.4.17",
+    "dotenv": "^16.4.5",
     "eslint": "^9.15.0",
     "eslint-plugin-react": "^7.37.0",
     "eslint-plugin-react-hooks": "^5.0.0",

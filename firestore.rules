@@ -1,0 +1,273 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // FUNCIONES DE UTILIDAD
+    // ============================================
+    
+    // Verificar si el usuario está autenticado (para futuras implementaciones)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Verificar si es el propietario del documento
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Validar estructura de código
+    function isValidCode(code) {
+      return code.keys().hasAll(['code', 'projectId', 'isValid', 'createdAt']) 
+        && code.code is string 
+        && code.projectId is string
+        && code.isValid is bool
+        && code.createdAt is timestamp;
+    }
+    
+    // Validar longitud de código
+    function isValidCodeLength(code) {
+      return code.size() >= 5 && code.size() <= 50;
+    }
+    
+    // Verificar rate limiting (máximo 10 lecturas por minuto por IP)
+    // Nota: Esta es una implementación simplificada
+    function isWithinRateLimit() {
+      return true; // En producción, implementar con Cloud Functions
+    }
+    
+    
+    // ============================================
+    // REGLAS PARA CÓDIGOS QR
+    // ============================================
+    
+    match /codes/{codeId} {
+      
+      // LECTURA (GET/LIST)
+      // Permitir lectura solo de códigos válidos
+      // Rate limiting aplicado
+      allow get: if resource.data.isValid == true 
+                 && isWithinRateLimit();
+      
+      // Permitir listar solo códigos válidos
+      // Limitado a 100 documentos por consulta
+      allow list: if resource.data.isValid == true 
+                  && request.query.limit <= 100
+                  && isWithinRateLimit();
+      
+      
+      // ESCRITURA (CREATE/UPDATE/DELETE)
+      // En producción, solo permitir escritura desde backend/Cloud Functions
+      // Para desarrollo/testing, permitir con restricciones
+      
+      // CREATE - Solo durante desarrollo
+      allow create: if false; // Cambiar a 'true' solo para testing local
+                    // En producción, usar Cloud Functions
+      
+      // UPDATE - Permitir solo actualizar scannedAt
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+                    .hasOnly(['scannedAt', 'metadata'])
+                    && request.resource.data.code == resource.data.code
+                    && request.resource.data.projectId == resource.data.projectId
+                    && request.resource.data.isValid == resource.data.isValid
+                    && isWithinRateLimit();
+      
+      // DELETE - Nunca permitir desde cliente
+      allow delete: if false;
+    }
+    
+    
+    // ============================================
+    // REGLAS PARA ESTADÍSTICAS
+    // ============================================
+    
+    match /stats/{statId} {
+      
+      // LECTURA - Permitir leer estadísticas globales
+      allow get: if statId == 'global'
+                 && isWithinRateLimit();
+      
+      // Permitir listar con límite
+      allow list: if request.query.limit <= 10;
+      
+      // ESCRITURA - Solo desde backend
+      allow write: if false; // Solo Cloud Functions pueden escribir
+    }
+    
+    
+    // ============================================
+    // REGLAS PARA PROYECTOS (FUTURO)
+    // ============================================
+    
+    match /projects/{projectId} {
+      
+      // LECTURA - Público
+      allow read: if true;
+      
+      // ESCRITURA - Solo administradores (futuro)
+      allow write: if false;
+    }
+    
+    
+    // ============================================
+    // REGLAS PARA LOGS DE AUDITORÍA (OPCIONAL)
+    // ============================================
+    
+    match /audit_logs/{logId} {
+      
+      // LECTURA - Solo administradores
+      allow read: if false;
+      
+      // ESCRITURA - Solo desde backend
+      allow write: if false;
+    }
+    
+    
+    // ============================================
+    // REGLAS PARA METADATA DE USUARIOS (FUTURO)
+    // ============================================
+    
+    match /users/{userId} {
+      
+      // LECTURA - Solo el propio usuario
+      allow read: if isOwner(userId);
+      
+      // ESCRITURA - Solo el propio usuario
+      allow create: if isOwner(userId) && isValidUserData();
+      allow update: if isOwner(userId) && isValidUserData();
+      allow delete: if false; // No permitir eliminación directa
+      
+      // Validación de datos de usuario
+      function isValidUserData() {
+        return request.resource.data.keys().hasAll(['displayName', 'email'])
+          && request.resource.data.displayName is string
+          && request.resource.data.email is string
+          && request.resource.data.email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+      }
+    }
+    
+    
+    // ============================================
+    // REGLAS PARA MENSAJES DE CONTACTO (OPCIONAL)
+    // ============================================
+    
+    match /contact_messages/{messageId} {
+      
+      // LECTURA - Solo administradores
+      allow read: if false;
+      
+      // CREAR - Permitir con validación estricta
+      allow create: if isValidContactMessage()
+                    && isWithinRateLimit();
+      
+      // Validación de mensaje de contacto
+      function isValidContactMessage() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['name', 'email', 'message', 'createdAt'])
+          && data.name is string
+          && data.name.size() > 0
+          && data.name.size() <= 100
+          && data.email is string
+          && data.email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')
+          && data.message is string
+          && data.message.size() > 10
+          && data.message.size() <= 5000
+          && data.createdAt is timestamp;
+      }
+      
+      // UPDATE/DELETE - No permitir
+      allow update, delete: if false;
+    }
+    
+    
+    // ============================================
+    // DENEGAR TODO LO DEMÁS
+    // ============================================
+    
+    // Cualquier otra ruta es denegada por defecto
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+
+// ============================================
+// NOTAS DE IMPLEMENTACIÓN
+// ============================================
+
+/*
+NOTAS IMPORTANTES:
+
+1. RATE LIMITING:
+   - La función isWithinRateLimit() es un placeholder
+   - En producción, implementar rate limiting con:
+     * Cloud Functions + Redis
+     * Firebase Extensions (AppCheck)
+     * API Gateway (Cloud Endpoints)
+
+2. SEGURIDAD EN PRODUCCIÓN:
+   - allow create en /codes debe ser 'false'
+   - Usar Cloud Functions para todas las escrituras
+   - Implementar AppCheck para validar requests legítimas
+   - Usar reCAPTCHA en formularios públicos
+
+3. AUDITORÍA:
+   - Considerar habilitar audit_logs en producción
+   - Registrar todas las operaciones sensibles
+   - Monitorear patrones de acceso sospechosos
+
+4. ÍNDICES NECESARIOS:
+   Crear estos índices en Firestore Console:
+   
+   Collection: codes
+   - code (Ascending) + isValid (Ascending)
+   - projectId (Ascending) + isValid (Ascending)
+   - createdAt (Descending) + isValid (Ascending)
+
+5. TESTING:
+   Antes de deployar, probar con Firebase Emulator:
+   
+   firebase emulators:start --only firestore
+   
+   Y ejecutar tests de seguridad:
+   
+   npm run test:security
+
+6. DEPLOYMENT:
+   Para aplicar estas reglas:
+   
+   firebase deploy --only firestore:rules
+   
+   O desde Firebase Console:
+   Firestore Database > Rules > Publish
+
+7. MONITOREO:
+   Configurar alertas para:
+   - Denegaciones de seguridad frecuentes
+   - Picos inusuales de tráfico
+   - Intentos de acceso no autorizado
+   
+   Ver en: Firebase Console > Firestore > Usage tab
+
+8. FUTURAS MEJORAS:
+   - Implementar roles (admin, user, viewer)
+   - Agregar autenticación de usuarios
+   - Implementar soft delete en lugar de hard delete
+   - Agregar campos de auditoría (modifiedBy, modifiedAt)
+   - Implementar versioning de documentos
+
+9. COMPLIANCE:
+   Si manejas datos personales (GDPR/CCPA):
+   - Agregar reglas para derecho al olvido
+   - Implementar exportación de datos
+   - Registrar consentimientos
+   - Limitar retención de datos
+
+10. PERFORMANCE:
+    - Mantener reglas simples y rápidas
+    - Evitar queries complejas en rules
+    - Usar índices apropiados
+    - Cachear lecturas en el cliente cuando sea posible
+*/

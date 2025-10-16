@@ -1,4 +1,4 @@
-// src/services/reviewService.js - Servicio de Reseñas con Firestore
+// src/services/reviewService.js - MEJORADO CON ERROR HANDLING
 import { 
   collection, 
   addDoc, 
@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { SecurityManager } from '../utils/security'
+import { handleServiceError } from '../utils/errorHandler'
 import { logger } from '../utils/logger'
 
 const REVIEWS_COLLECTION = 'reviews'
@@ -28,17 +29,20 @@ export const getReviews = async () => {
     const q = query(reviewsRef, orderBy('createdAt', 'desc'))
     const snapshot = await getDocs(q)
     
-    const reviews = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      date: doc.data().createdAt?.toDate().toISOString() || new Date().toISOString()
-    }))
+    const reviews = snapshot.docs.map(doc => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        ...data,
+        date: data.createdAt?.toDate().toISOString() || new Date().toISOString()
+      }
+    })
     
     logger.info('Reseñas cargadas desde Firestore', { count: reviews.length })
     return reviews
   } catch (error) {
     logger.error('Error obteniendo reseñas', error)
-    throw error
+    throw handleServiceError(error, 'getReviews')
   }
 }
 
@@ -47,10 +51,21 @@ export const getReviews = async () => {
  */
 export const addReview = async (reviewData) => {
   try {
+    // Validar datos antes de sanitizar
+    if (!reviewData.name || !reviewData.rating || !reviewData.comment || !reviewData.code) {
+      throw new Error('Datos de reseña incompletos')
+    }
+
+    // Validar rating
+    const rating = parseInt(reviewData.rating)
+    if (isNaN(rating) || rating < 1 || rating > 5) {
+      throw new Error('Rating inválido')
+    }
+
     // Validar y sanitizar datos
     const sanitizedReview = {
       name: SecurityManager.sanitizeInput(reviewData.name, 100),
-      rating: parseInt(reviewData.rating),
+      rating: rating,
       comment: SecurityManager.sanitizeInput(reviewData.comment, 1000),
       project: SecurityManager.sanitizeInput(reviewData.project || '', 200),
       code: SecurityManager.sanitizeInput(reviewData.code, 50),
@@ -72,10 +87,14 @@ export const addReview = async (reviewData) => {
     
     logger.info('Reseña agregada', { id: docRef.id, code: sanitizedReview.code })
     
-    return { id: docRef.id, ...sanitizedReview }
+    return { 
+      id: docRef.id, 
+      ...sanitizedReview,
+      date: new Date().toISOString()
+    }
   } catch (error) {
     logger.error('Error agregando reseña', error)
-    throw error
+    throw handleServiceError(error, 'addReview')
   }
 }
 
@@ -84,15 +103,36 @@ export const addReview = async (reviewData) => {
  */
 export const updateReview = async (reviewId, updates) => {
   try {
+    if (!reviewId) {
+      throw new Error('ID de reseña requerido')
+    }
+
     const reviewRef = doc(db, REVIEWS_COLLECTION, reviewId)
     
-    const sanitizedUpdates = {
-      name: SecurityManager.sanitizeInput(updates.name, 100),
-      rating: parseInt(updates.rating),
-      comment: SecurityManager.sanitizeInput(updates.comment, 1000),
-      project: SecurityManager.sanitizeInput(updates.project || '', 200),
-      updatedAt: serverTimestamp()
+    // Validar y sanitizar actualizaciones
+    const sanitizedUpdates = {}
+    
+    if (updates.name !== undefined) {
+      sanitizedUpdates.name = SecurityManager.sanitizeInput(updates.name, 100)
     }
+    
+    if (updates.rating !== undefined) {
+      const rating = parseInt(updates.rating)
+      if (isNaN(rating) || rating < 1 || rating > 5) {
+        throw new Error('Rating inválido')
+      }
+      sanitizedUpdates.rating = rating
+    }
+    
+    if (updates.comment !== undefined) {
+      sanitizedUpdates.comment = SecurityManager.sanitizeInput(updates.comment, 1000)
+    }
+    
+    if (updates.project !== undefined) {
+      sanitizedUpdates.project = SecurityManager.sanitizeInput(updates.project || '', 200)
+    }
+    
+    sanitizedUpdates.updatedAt = serverTimestamp()
     
     await updateDoc(reviewRef, sanitizedUpdates)
     
@@ -100,7 +140,7 @@ export const updateReview = async (reviewId, updates) => {
     return { id: reviewId, ...sanitizedUpdates }
   } catch (error) {
     logger.error('Error actualizando reseña', error)
-    throw error
+    throw handleServiceError(error, 'updateReview')
   }
 }
 
@@ -109,16 +149,22 @@ export const updateReview = async (reviewId, updates) => {
  */
 export const deleteReview = async (reviewId, code) => {
   try {
+    if (!reviewId) {
+      throw new Error('ID de reseña requerido')
+    }
+
     const reviewRef = doc(db, REVIEWS_COLLECTION, reviewId)
     await deleteDoc(reviewRef)
     
-    // Liberar el código
-    await releaseCode(code)
+    // Liberar el código si se proporciona
+    if (code) {
+      await releaseCode(code)
+    }
     
     logger.info('Reseña eliminada', { id: reviewId, code })
   } catch (error) {
     logger.error('Error eliminando reseña', error)
-    throw error
+    throw handleServiceError(error, 'deleteReview')
   }
 }
 
@@ -130,28 +176,34 @@ export const getFilteredReviews = async (filters = {}) => {
     let q = query(collection(db, REVIEWS_COLLECTION))
     
     if (filters.rating) {
-      q = query(q, where('rating', '==', filters.rating))
+      q = query(q, where('rating', '==', parseInt(filters.rating)))
     }
     
     if (filters.minRating) {
-      q = query(q, where('rating', '>=', filters.minRating))
+      q = query(q, where('rating', '>=', parseInt(filters.minRating)))
     }
     
     q = query(q, orderBy('createdAt', 'desc'))
     
     if (filters.limit) {
-      q = query(q, limit(filters.limit))
+      q = query(q, limit(parseInt(filters.limit)))
     }
     
     const snapshot = await getDocs(q)
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      date: doc.data().createdAt?.toDate().toISOString() || new Date().toISOString()
-    }))
+    const reviews = snapshot.docs.map(doc => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        ...data,
+        date: data.createdAt?.toDate().toISOString() || new Date().toISOString()
+      }
+    })
+    
+    logger.info('Reseñas filtradas obtenidas', { count: reviews.length, filters })
+    return reviews
   } catch (error) {
     logger.error('Error obteniendo reseñas filtradas', error)
-    throw error
+    throw handleServiceError(error, 'getFilteredReviews')
   }
 }
 
@@ -160,6 +212,8 @@ export const getFilteredReviews = async (filters = {}) => {
  */
 const validateCode = async (code) => {
   try {
+    if (!code) return false
+    
     const codesRef = collection(db, CODES_COLLECTION)
     const q = query(codesRef, where('code', '==', code), where('used', '==', false))
     const snapshot = await getDocs(q)
@@ -176,6 +230,8 @@ const validateCode = async (code) => {
  */
 const markCodeAsUsed = async (code) => {
   try {
+    if (!code) return
+    
     const codesRef = collection(db, CODES_COLLECTION)
     const q = query(codesRef, where('code', '==', code))
     const snapshot = await getDocs(q)
@@ -186,6 +242,7 @@ const markCodeAsUsed = async (code) => {
         used: true,
         usedAt: serverTimestamp()
       })
+      logger.info('Código marcado como usado', { code })
     }
   } catch (error) {
     logger.error('Error marcando código como usado', error)
@@ -198,6 +255,8 @@ const markCodeAsUsed = async (code) => {
  */
 const releaseCode = async (code) => {
   try {
+    if (!code) return
+    
     const codesRef = collection(db, CODES_COLLECTION)
     const q = query(codesRef, where('code', '==', code))
     const snapshot = await getDocs(q)
@@ -208,6 +267,7 @@ const releaseCode = async (code) => {
         used: false,
         usedAt: null
       })
+      logger.info('Código liberado', { code })
     }
   } catch (error) {
     logger.error('Error liberando código', error)
@@ -239,10 +299,30 @@ export const getReviewStats = async () => {
       distribution[review.rating]++
     })
     
+    logger.info('Estadísticas de reseñas calculadas', { total, average })
+    
     return { total, average, distribution }
   } catch (error) {
     logger.error('Error obteniendo estadísticas', error)
-    throw error
+    throw handleServiceError(error, 'getReviewStats')
+  }
+}
+
+/**
+ * Verificar si un código específico fue usado
+ */
+export const isCodeUsed = async (code) => {
+  try {
+    if (!code) return false
+    
+    const codesRef = collection(db, CODES_COLLECTION)
+    const q = query(codesRef, where('code', '==', code), where('used', '==', true))
+    const snapshot = await getDocs(q)
+    
+    return !snapshot.empty
+  } catch (error) {
+    logger.error('Error verificando si código fue usado', error)
+    return false
   }
 }
 
@@ -252,5 +332,6 @@ export default {
   updateReview,
   deleteReview,
   getFilteredReviews,
-  getReviewStats
+  getReviewStats,
+  isCodeUsed
 }

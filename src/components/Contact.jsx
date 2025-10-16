@@ -1,5 +1,5 @@
-// src/components/Contact.jsx - VERSIÓN MEJORADA CON VALIDACIONES Y SEGURIDAD
-import { useState } from 'react'
+// src/components/Contact.jsx - VERSIÓN CORREGIDA
+import { useState, useEffect } from 'react'
 import Button from './ui/Button'
 import { SecurityManager, formRateLimiter } from '../utils/security'
 import { logger } from '../utils/logger'
@@ -10,10 +10,10 @@ export default function Contact(){
   const [touched, setTouched] = useState({})
   const [csrfToken] = useState(() => SecurityManager.generateCSRFToken())
 
-  // Almacenar token en sessionStorage al montar
-  useState(() => {
+  // CORRECCIÓN: Usar useEffect en lugar de useState
+  useEffect(() => {
     sessionStorage.setItem('csrf_token', csrfToken)
-  })
+  }, [csrfToken])
 
   // Función para validar el formulario en tiempo real
   function validateField(name, value) {
@@ -480,7 +480,7 @@ export default function Contact(){
                 <span className="text-2xl">📧</span>
                 <div>
                   <p className="text-xs text-gray-500">Email</p>
-                  <a  className="text-subtitle font-semibold ">
+                  <a className="text-subtitle font-semibold">
                     contacto@proconing.cl
                   </a>
                 </div>
@@ -489,7 +489,7 @@ export default function Contact(){
                 <span className="text-2xl">📱</span>
                 <div>
                   <p className="text-xs text-gray-500">Teléfono</p>
-                  <a className="text-subtitle font-semibold ">
+                  <a className="text-subtitle font-semibold">
                     +569 7349 5086
                   </a>
                 </div>

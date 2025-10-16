@@ -1,6 +1,7 @@
-// src/contexts/CodeContext.jsx - Context para Códigos
+// src/contexts/CodeContext.jsx - MEJORADO CON ERROR HANDLING
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import * as codeService from '../services/codeService'
+import { getErrorMessage } from '../utils/errorHandler'
 import { logger } from '../utils/logger'
 
 const CodeContext = createContext()
@@ -39,8 +40,9 @@ export function CodeProvider({ children }) {
         used: used.length
       })
     } catch (err) {
+      const errorMessage = getErrorMessage(err)
       logger.error('Error cargando códigos en contexto', err)
-      setError(err.message)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -57,8 +59,9 @@ export function CodeProvider({ children }) {
       logger.info('Código agregado en contexto', { id: newCode.id })
       return newCode
     } catch (err) {
+      const errorMessage = getErrorMessage(err)
       logger.error('Error agregando código en contexto', err)
-      throw err
+      throw new Error(errorMessage)
     }
   }, [])
 
@@ -73,14 +76,15 @@ export function CodeProvider({ children }) {
       
       logger.info('Código eliminado en contexto', { id: codeId })
     } catch (err) {
+      const errorMessage = getErrorMessage(err)
       logger.error('Error eliminando código en contexto', err)
-      throw err
+      throw new Error(errorMessage)
     }
   }, [])
 
   // Generar código aleatorio
-  const generateCode = useCallback(() => {
-    return codeService.generateRandomCode()
+  const generateCode = useCallback((prefix = 'PROC') => {
+    return codeService.generateRandomCode(prefix)
   }, [])
 
   // Generar códigos en lote
@@ -92,8 +96,9 @@ export function CodeProvider({ children }) {
       logger.info('Códigos generados en lote', { count: result.codes.length })
       return result
     } catch (err) {
+      const errorMessage = getErrorMessage(err)
       logger.error('Error generando códigos en lote', err)
-      throw err
+      throw new Error(errorMessage)
     }
   }, [loadCodes])
 
@@ -106,8 +111,9 @@ export function CodeProvider({ children }) {
       logger.info('Códigos importados', { count: result.imported })
       return result
     } catch (err) {
+      const errorMessage = getErrorMessage(err)
       logger.error('Error importando códigos', err)
-      throw err
+      throw new Error(errorMessage)
     }
   }, [loadCodes])
 
@@ -115,6 +121,22 @@ export function CodeProvider({ children }) {
   const validateCode = useCallback((code) => {
     return availableCodes.some(c => c.code === code)
   }, [availableCodes])
+
+  // Obtener estadísticas
+  const getStats = useCallback(async () => {
+    try {
+      return await codeService.getCodeStats()
+    } catch (err) {
+      const errorMessage = getErrorMessage(err)
+      logger.error('Error obteniendo estadísticas de códigos', err)
+      throw new Error(errorMessage)
+    }
+  }, [])
+
+  // Retry en caso de error
+  const retry = useCallback(() => {
+    loadCodes()
+  }, [loadCodes])
 
   const value = {
     codes,
@@ -128,7 +150,9 @@ export function CodeProvider({ children }) {
     generateCode,
     generateBulkCodes,
     importCodes,
-    validateCode
+    validateCode,
+    getStats,
+    retry
   }
 
   return (
