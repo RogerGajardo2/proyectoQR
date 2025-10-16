@@ -1,21 +1,27 @@
-// src/App.jsx (CON RUTA DE ADMINISTRACIÓN)
-
+// src/App.jsx - REFACTORIZADO CON PROVIDERS Y ERROR BOUNDARY
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect, useMemo } from 'react'
+import { ReviewProvider } from './contexts/ReviewContext'
+import { CodeProvider } from './contexts/CodeContext'
+import ErrorBoundary from './components/ErrorBoundary'
+import { useReveal } from './hooks/useReveal'
+
+// Layout components
 import Header from './components/Header'
+import Footer from './components/Footer'
+import ScrollUp from './components/ScrollUp'
+
+// Page components
 import Hero from './components/Hero'
 import ProjectsCarousel from './components/ProjectsCarousel'
 import About from './components/About'
 import Reviews from './components/Reviews'
 import VideoCTA from './components/VideoCTA'
 import Contact from './components/Contact'
-import Footer from './components/Footer'
-import ScrollUp from './components/ScrollUp'
 import ProfileCard from './components/ProfileCard'
 import ProjectDetail from './components/ProjectDetail'
 import ProjectsList from './components/ProjectsList'
-import AdminCodes from './components/AdminCodes'
-import { useReveal } from './hooks/useReveal'
+import AdminCodes from './components/admin/AdminCodes'
 
 // Componente para la landing page
 function Landing() {
@@ -46,14 +52,14 @@ function Landing() {
   }, [location.search])
   
   return (
-    <>
+    <ReviewProvider>
       <Hero />
       <ProjectsCarousel />
       <About />
       <Reviews />
       <VideoCTA />
       <Contact />
-    </>
+    </ReviewProvider>
   )
 }
 
@@ -79,49 +85,51 @@ export default function App() {
   }, [location.pathname])
   
   return (
-    <div className="min-h-screen">
-      {/* Header: NO mostrar en admin */}
-      {layoutConfig.shouldShowLayout && <Header />}
-      
-      <main className={layoutConfig.shouldShowLayout ? 'pt-[var(--nav-h)] pb-20' : ''}>
-        <Routes>
-          {/* Ruta principal - Profile Card */}
-          <Route path="/" element={<ProfileCard />} />
-          
-          {/* Landing page */}
-          <Route path="/inicio" element={<Landing />} />
-          
-          {/* Lista completa de proyectos */}
-          <Route path="/inicio/proyectos" element={<ProjectsList />} />
-          
-          {/* Rutas de proyectos individuales */}
-          <Route path="/inicio/proyecto-proyecto-1" element={<ProjectDetail />} />
-          <Route path="/inicio/proyecto-proyecto-2" element={<ProjectDetail />} />
-          <Route path="/inicio/proyecto-proyecto-3" element={<ProjectDetail />} />
-          <Route path="/inicio/proyecto-proyecto-4" element={<ProjectDetail />} />
-          <Route path="/inicio/proyecto-proyecto-5" element={<ProjectDetail />} />
-          <Route path="/inicio/proyecto-proyecto-6" element={<ProjectDetail />} />
-          <Route path="/inicio/proyecto-proyecto-7" element={<ProjectDetail />} />
-          <Route path="/inicio/proyecto-proyecto-8" element={<ProjectDetail />} />
-          
-          {/* 🔐 RUTA DE ADMINISTRACIÓN */}
-          <Route path="/admin/codigos" element={<AdminCodes />} />
-          
-          {/* Redirects y rutas de fallback */}
-          <Route path="/perfil" element={<Navigate to="/" replace />} />
-          
-          {/* Catch-all route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-      
-      {/* Footer y ScrollUp: NO mostrar en admin */}
-      {layoutConfig.shouldShowLayout && (
-        <>
-          <Footer />
-          <ScrollUp />
-        </>
-      )}
-    </div>
+    <ErrorBoundary>
+      <div className="min-h-screen">
+        {/* Header: NO mostrar en admin */}
+        {layoutConfig.shouldShowLayout && <Header />}
+        
+        <main className={layoutConfig.shouldShowLayout ? 'pt-[var(--nav-h)] pb-20' : ''}>
+          <Routes>
+            {/* Ruta principal - Profile Card */}
+            <Route path="/" element={<ProfileCard />} />
+            
+            {/* Landing page con Reviews Provider */}
+            <Route path="/inicio" element={<Landing />} />
+            
+            {/* Lista completa de proyectos */}
+            <Route path="/inicio/proyectos" element={<ProjectsList />} />
+            
+            {/* Rutas de proyectos individuales */}
+            <Route path="/inicio/proyecto-proyecto-1" element={<ProjectDetail />} />
+            <Route path="/inicio/proyecto-proyecto-2" element={<ProjectDetail />} />
+            <Route path="/inicio/proyecto-proyecto-3" element={<ProjectDetail />} />
+            <Route path="/inicio/proyecto-proyecto-4" element={<ProjectDetail />} />
+            <Route path="/inicio/proyecto-proyecto-5" element={<ProjectDetail />} />
+            <Route path="/inicio/proyecto-proyecto-6" element={<ProjectDetail />} />
+            <Route path="/inicio/proyecto-proyecto-7" element={<ProjectDetail />} />
+            <Route path="/inicio/proyecto-proyecto-8" element={<ProjectDetail />} />
+            
+            {/* Ruta de administración con sus propios providers */}
+            <Route path="/admin/codigos" element={<AdminCodes />} />
+            
+            {/* Redirects y rutas de fallback */}
+            <Route path="/perfil" element={<Navigate to="/" replace />} />
+            
+            {/* Catch-all route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+        
+        {/* Footer y ScrollUp: NO mostrar en admin */}
+        {layoutConfig.shouldShowLayout && (
+          <>
+            <Footer />
+            <ScrollUp />
+          </>
+        )}
+      </div>
+    </ErrorBoundary>
   )
 }

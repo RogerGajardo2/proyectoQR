@@ -1,11 +1,11 @@
-// src/components/Reviews.jsx - VERSIÓN OPTIMIZADA
-import { useState, useEffect, useMemo, useCallback, memo } from 'react'
+// src/components/Reviews.jsx - ACTUALIZADO CON CONTEXT
+import { useState, useMemo, useCallback, memo } from 'react'
+import { useReviews } from '../contexts/ReviewContext'
 import Button from './ui/Button'
 import ReviewModal from './ReviewModal'
 import { logger } from '../utils/logger'
 
-// ==================== COMPONENTES MEMOIZADOS ====================
-
+// Componente memoizado para rating de estrellas
 const StarRating = memo(({ rating, size = 'md' }) => {
   const sizes = {
     sm: 'w-4 h-4',
@@ -28,12 +28,11 @@ const StarRating = memo(({ rating, size = 'md' }) => {
       ))}
     </div>
   )
-}, (prevProps, nextProps) => {
-  return prevProps.rating === nextProps.rating && prevProps.size === nextProps.size
 })
 
 StarRating.displayName = 'StarRating'
 
+// Componente para barra de distribución
 const DistributionBar = memo(({ stars, count, total }) => {
   const percentage = total > 0 ? (count / total) * 100 : 0
 
@@ -49,16 +48,12 @@ const DistributionBar = memo(({ stars, count, total }) => {
       <span className="text-sm text-gray-600 w-8 text-right">{count}</span>
     </div>
   )
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.count === nextProps.count &&
-    prevProps.total === nextProps.total
-  )
 })
 
 DistributionBar.displayName = 'DistributionBar'
 
-const ReviewCard = memo(({ review, index }) => (
+// Componente para card de reseña
+const ReviewCard = memo(({ review }) => (
   <div
     className="bg-white border border-line rounded-2xl p-6 shadow-soft hover:shadow-lg transition-shadow"
     data-reveal
@@ -89,57 +84,21 @@ const ReviewCard = memo(({ review, index }) => (
       </div>
     )}
   </div>
-), (prevProps, nextProps) => {
-  return (
-    prevProps.review.code === nextProps.review.code &&
-    prevProps.review.rating === nextProps.review.rating
-  )
-})
+))
 
 ReviewCard.displayName = 'ReviewCard'
 
-// ==================== COMPONENTE PRINCIPAL ====================
-
 export default function Reviews() {
-  const [reviews, setReviews] = useState([])
+  const { 
+    reviews, 
+    loading, 
+    error, 
+    stats, 
+    addReview 
+  } = useReviews()
+
   const [showModal, setShowModal] = useState(false)
-  const [visibleCount, setVisibleCount] = useState(9) // Paginación inicial
-
-  // Cargar reseñas desde localStorage al montar
-  useEffect(() => {
-    try {
-      const savedReviews = localStorage.getItem('proconing_reviews')
-      if (savedReviews) {
-        const parsedReviews = JSON.parse(savedReviews)
-        setReviews(parsedReviews)
-        logger.info('Reseñas cargadas', { count: parsedReviews.length })
-      }
-    } catch (error) {
-      logger.error('Error cargando reseñas', error)
-    }
-  }, [])
-
-  // Calcular estadísticas memoizadas
-  const stats = useMemo(() => {
-    if (reviews.length === 0) {
-      return { 
-        average: 0, 
-        total: 0, 
-        distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } 
-      }
-    }
-
-    const total = reviews.length
-    const sum = reviews.reduce((acc, review) => acc + review.rating, 0)
-    const average = sum / total
-
-    const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
-    reviews.forEach(review => {
-      distribution[review.rating]++
-    })
-
-    return { average, total, distribution }
-  }, [reviews])
+  const [visibleCount, setVisibleCount] = useState(9)
 
   // Reseñas visibles con paginación
   const visibleReviews = useMemo(() => {
@@ -149,25 +108,48 @@ export default function Reviews() {
   const hasMore = reviews.length > visibleCount
 
   // Manejar nueva reseña
-  const handleNewReview = useCallback((newReview) => {
+  const handleNewReview = useCallback(async (newReview) => {
     try {
-      const updatedReviews = [...reviews, newReview]
-      setReviews(updatedReviews)
-      localStorage.setItem('proconing_reviews', JSON.stringify(updatedReviews))
+      await addReview(newReview)
       setShowModal(false)
-      logger.info('Nueva reseña agregada', { 
-        code: newReview.code, 
-        rating: newReview.rating 
-      })
+      logger.info('Nueva reseña agregada desde UI')
     } catch (error) {
-      logger.error('Error agregando reseña', error)
+      logger.error('Error agregando reseña desde UI', error)
+      alert('Error al agregar reseña: ' + error.message)
     }
-  }, [reviews])
+  }, [addReview])
 
   const handleLoadMore = useCallback(() => {
     setVisibleCount(prev => Math.min(prev + 9, reviews.length))
-    logger.info('Cargando más reseñas', { visibleCount: visibleCount + 9 })
-  }, [reviews.length, visibleCount])
+  }, [reviews.length])
+
+  if (loading) {
+    return (
+      <section id="resenas" className="py-16 scroll-mt-24 bg-white">
+        <div className="container">
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+            <p className="mt-4 text-gray-600">Cargando reseñas...</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section id="resenas" className="py-16 scroll-mt-24 bg-white">
+        <div className="container">
+          <div className="text-center py-12">
+            <p className="text-red-600">Error al cargar reseñas: {error}</p>
+            <Button onClick={() => window.location.reload()} className="mt-4">
+              Reintentar
+            </Button>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section id="resenas" className="py-16 scroll-mt-24 bg-white">
@@ -236,9 +218,8 @@ export default function Reviews() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {visibleReviews.map((review, index) => (
                 <ReviewCard
-                  key={`${review.code}-${index}`}
+                  key={review.id || `review-${index}`}
                   review={review}
-                  index={index}
                 />
               ))}
             </div>

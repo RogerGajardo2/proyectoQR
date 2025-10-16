@@ -21,19 +21,15 @@
     
     <!-- Security Headers -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     
-    <!-- Content Security Policy - ACTUALIZADO para Firebase -->
+    <!-- Content Security Policy - MEJORADA Y MÁS SEGURA -->
     <meta 
       http-equiv="Content-Security-Policy" 
       content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' 
-          https://cdnjs.cloudflare.com 
-          https://apis.google.com 
-          https://www.gstatic.com 
-          https://*.googleapis.com;
+        script-src 'self' https://cdnjs.cloudflare.com https://apis.google.com https://www.gstatic.com;
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: https: blob:;
         font-src 'self' data:;
@@ -55,8 +51,15 @@
           https://accounts.google.com;
         base-uri 'self';
         form-action 'self' https://api.web3forms.com;
+        frame-ancestors 'none';
         upgrade-insecure-requests;
       "
+    />
+    
+    <!-- Permissions Policy -->
+    <meta 
+      http-equiv="Permissions-Policy" 
+      content="geolocation=(), microphone=(), camera=(), payment=()" 
     />
     
     <!-- Preconnect to external domains -->
@@ -69,6 +72,9 @@
     <link rel="dns-prefetch" href="https://api.web3forms.com" />
     <link rel="dns-prefetch" href="https://firebase.googleapis.com" />
     <link rel="dns-prefetch" href="https://apis.google.com" />
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/resources/logo.png" as="image" type="image/png" />
   </head>
   <body class="bg-white text-text">
     <noscript>

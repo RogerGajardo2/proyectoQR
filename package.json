@@ -1,9 +1,9 @@
 {
   "name": "proconing-landing",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Sitio web corporativo para ProconIng - Arquitectura y Construcción",
+  "description": "Sitio web corporativo para ProconIng con Firestore",
   "author": "ProconIng <contacto@proconing.cl>",
   "license": "UNLICENSED",
   "scripts": {
@@ -11,13 +11,17 @@
     "build": "vite build",
     "preview": "vite preview",
     "preview:gh": "vite preview --base /proyectoQR/ --strictPort --port 4174 --open /proyectoQR/",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest watch",
     "lint": "eslint src --ext .js,.jsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext .js,.jsx --fix",
     "audit": "npm audit --audit-level=moderate",
     "audit:fix": "npm audit fix",
     "clean": "rm -rf node_modules dist .vite",
     "reinstall": "npm run clean && npm install",
-    "check": "npm run lint && npm run audit"
+    "check": "npm run lint && npm run audit && npm run test:coverage"
   },
   "dependencies": {
     "firebase": "^12.4.0",
@@ -26,15 +30,21 @@
     "react-router-dom": "^6.23.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^14.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/ui": "^1.6.1",
     "autoprefixer": "^10.4.17",
     "eslint": "^9.15.0",
     "eslint-plugin-react": "^7.37.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "globals": "^15.12.0",
+    "jsdom": "^23.2.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.4",
-    "vite": "^5.2.0"
+    "vite": "^5.2.0",
+    "vitest": "^1.6.1"
   },
   "engines": {
     "node": ">=18.0.0",
