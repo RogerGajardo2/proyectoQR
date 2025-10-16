@@ -1,14 +1,6 @@
-// src/components/ReviewModal.jsx
+// src/components/ReviewModal.jsx (CON VALIDACIONES MEJORADAS)
 import { useState, useEffect } from 'react'
 import Button from './ui/Button'
-
-const VALID_CODES = [
-  'PROC2024',
-  'CLIENTE001',
-  'VIP2025',
-  'PREMIUM100'
-  // Agrega más códigos según necesites
-]
 
 export default function ReviewModal({ onClose, onSubmit }) {
   const [step, setStep] = useState(1) // 1: código, 2: formulario
@@ -21,7 +13,10 @@ export default function ReviewModal({ onClose, onSubmit }) {
     project: ''
   })
   const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
   const [hoveredStar, setHoveredStar] = useState(0)
+  const [validCodes, setValidCodes] = useState([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Bloquear scroll del body cuando el modal está abierto
   useEffect(() => {
@@ -29,6 +24,27 @@ export default function ReviewModal({ onClose, onSubmit }) {
     return () => {
       document.body.style.overflow = 'auto'
     }
+  }, [])
+
+  // Cargar códigos disponibles desde localStorage
+  useEffect(() => {
+    const loadAvailableCodes = () => {
+      try {
+        const savedCodes = JSON.parse(localStorage.getItem('proconing_codes') || '[]')
+        const usedCodes = JSON.parse(localStorage.getItem('proconing_used_codes') || '[]')
+        
+        const available = savedCodes
+          .filter(c => !usedCodes.includes(c.code))
+          .map(c => c.code)
+        
+        setValidCodes(available)
+      } catch (error) {
+        console.error('Error cargando códigos:', error)
+        setValidCodes([])
+      }
+    }
+
+    loadAvailableCodes()
   }, [])
 
   // Verificar si el código ya fue usado
@@ -44,6 +60,73 @@ export default function ReviewModal({ onClose, onSubmit }) {
     localStorage.setItem('proconing_used_codes', JSON.stringify(usedCodes))
   }
 
+  // Validar campo individual
+  const validateField = (name, value) => {
+    let error = ''
+
+    switch (name) {
+      case 'name':
+        if (!value.trim()) {
+          error = 'El nombre es obligatorio'
+        } else if (value.trim().length < 2) {
+          error = 'El nombre debe tener al menos 2 caracteres'
+        } else if (value.trim().length > 50) {
+          error = 'El nombre no puede exceder 50 caracteres'
+        } else if (!/^[a-záéíóúñA-ZÁÉÍÓÚÑ\s]+$/i.test(value.trim())) {
+          error = 'El nombre solo puede contener letras y espacios'
+        }
+        break
+
+      case 'comment':
+        if (!value.trim()) {
+          error = 'El comentario es obligatorio'
+        } else if (value.trim().length < 10) {
+          error = 'El comentario debe tener al menos 10 caracteres'
+        } else if (value.trim().length > 500) {
+          error = 'El comentario no puede exceder 500 caracteres'
+        } else {
+          // Detectar spam
+          const spamPatterns = [
+            /viagra|cialis|casino|lottery/i,
+            /(https?:\/\/[^\s]+){2,}/g, // Múltiples URLs
+          ]
+          
+          if (spamPatterns.some(pattern => pattern.test(value))) {
+            error = 'El comentario contiene contenido no permitido'
+          }
+        }
+        break
+
+      case 'project':
+        if (value.trim() && value.trim().length > 100) {
+          error = 'El nombre del proyecto no puede exceder 100 caracteres'
+        } else if (value.trim() && !/^[a-zA-Z0-9áéíóúñÁÉÍÓÚÑ\s\-_]+$/i.test(value.trim())) {
+          error = 'El nombre del proyecto contiene caracteres no permitidos'
+        }
+        break
+    }
+
+    return error
+  }
+
+  // Manejar cambio de campo
+  const handleFieldChange = (name, value) => {
+    setFormData(prev => ({ ...prev, [name]: value }))
+    
+    // Validar en tiempo real si el campo ha sido tocado
+    if (touched[name]) {
+      const error = validateField(name, value)
+      setErrors(prev => ({ ...prev, [name]: error }))
+    }
+  }
+
+  // Manejar blur
+  const handleBlur = (name) => {
+    setTouched(prev => ({ ...prev, [name]: true }))
+    const error = validateField(name, formData[name])
+    setErrors(prev => ({ ...prev, [name]: error }))
+  }
+
   // Validar código
   const handleCodeSubmit = (e) => {
     e.preventDefault()
@@ -54,8 +137,27 @@ export default function ReviewModal({ onClose, onSubmit }) {
       return
     }
 
-    if (!VALID_CODES.includes(trimmedCode)) {
-      setCodeError('Código inválido. Verifica que esté escrito correctamente.')
+    if (trimmedCode.length < 4) {
+      setCodeError('El código debe tener al menos 4 caracteres')
+      return
+    }
+
+    if (!/^[A-Z0-9]+$/.test(trimmedCode)) {
+      setCodeError('El código solo puede contener letras y números')
+      return
+    }
+
+    if (!validCodes.includes(trimmedCode)) {
+      const allCodes = JSON.parse(localStorage.getItem('proconing_codes') || '[]')
+      const codeExists = allCodes.some(c => c.code === trimmedCode)
+      
+      if (codeExists && isCodeUsed(trimmedCode)) {
+        setCodeError('Este código ya ha sido utilizado')
+      } else if (codeExists) {
+        setCodeError('Este código no está disponible')
+      } else {
+        setCodeError('Código inválido. Verifica que esté escrito correctamente.')
+      }
       return
     }
 
@@ -68,28 +170,20 @@ export default function ReviewModal({ onClose, onSubmit }) {
     setStep(2)
   }
 
-  // Validar formulario
+  // Validar formulario completo
   const validateForm = () => {
     const newErrors = {}
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'El nombre es obligatorio'
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'El nombre debe tener al menos 2 caracteres'
-    } else if (formData.name.trim().length > 50) {
-      newErrors.name = 'El nombre no puede exceder 50 caracteres'
-    }
+    const nameError = validateField('name', formData.name)
+    const commentError = validateField('comment', formData.comment)
+    const projectError = validateField('project', formData.project)
 
-    if (!formData.comment.trim()) {
-      newErrors.comment = 'El comentario es obligatorio'
-    } else if (formData.comment.trim().length < 10) {
-      newErrors.comment = 'El comentario debe tener al menos 10 caracteres'
-    } else if (formData.comment.trim().length > 500) {
-      newErrors.comment = 'El comentario no puede exceder 500 caracteres'
-    }
+    if (nameError) newErrors.name = nameError
+    if (commentError) newErrors.comment = commentError
+    if (projectError) newErrors.project = projectError
 
-    if (formData.project && formData.project.length > 100) {
-      newErrors.project = 'El nombre del proyecto no puede exceder 100 caracteres'
+    if (formData.rating < 1 || formData.rating > 5) {
+      newErrors.rating = 'Selecciona una calificación'
     }
 
     return newErrors
@@ -99,24 +193,46 @@ export default function ReviewModal({ onClose, onSubmit }) {
   const handleSubmit = (e) => {
     e.preventDefault()
 
+    // Marcar todos los campos como tocados
+    setTouched({
+      name: true,
+      comment: true,
+      project: true,
+      rating: true
+    })
+
     const newErrors = validateForm()
     setErrors(newErrors)
 
     if (Object.keys(newErrors).length > 0) {
+      // Hacer scroll al primer error
+      const firstErrorField = Object.keys(newErrors)[0]
+      const element = document.getElementById(firstErrorField)
+      if (element) {
+        element.focus()
+      }
       return
     }
 
-    const review = {
-      ...formData,
-      name: formData.name.trim(),
-      comment: formData.comment.trim(),
-      project: formData.project.trim(),
-      date: new Date().toISOString(),
-      code: code.trim().toUpperCase()
-    }
+    setIsSubmitting(true)
 
-    markCodeAsUsed(code.trim().toUpperCase())
-    onSubmit(review)
+    try {
+      const review = {
+        name: formData.name.trim(),
+        rating: parseInt(formData.rating),
+        comment: formData.comment.trim(),
+        project: formData.project.trim(),
+        date: new Date().toISOString(),
+        code: code.trim().toUpperCase()
+      }
+
+      markCodeAsUsed(code.trim().toUpperCase())
+      onSubmit(review)
+    } catch (error) {
+      console.error('Error al enviar reseña:', error)
+      setErrors({ submit: 'Error al enviar la reseña. Intenta nuevamente.' })
+      setIsSubmitting(false)
+    }
   }
 
   // Renderizar estrellas interactivas
@@ -127,7 +243,10 @@ export default function ReviewModal({ onClose, onSubmit }) {
           <button
             key={star}
             type="button"
-            onClick={() => setFormData({ ...formData, rating: star })}
+            onClick={() => {
+              setFormData({ ...formData, rating: star })
+              setErrors(prev => ({ ...prev, rating: '' }))
+            }}
             onMouseEnter={() => setHoveredStar(star)}
             onMouseLeave={() => setHoveredStar(0)}
             className="transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded"
@@ -160,7 +279,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-line px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <div className="sticky top-0 bg-white border-b border-line px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
           <h3 className="text-xl font-bold text-title">
             {step === 1 ? 'Ingresa tu código' : 'Comparte tu experiencia'}
           </h3>
@@ -168,6 +287,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
             aria-label="Cerrar"
+            disabled={isSubmitting}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -190,6 +310,13 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   Para dejar una reseña, necesitas un código de acceso único.
                   Este código te fue proporcionado al finalizar tu proyecto.
                 </p>
+                {validCodes.length > 0 && (
+                  <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700 font-medium">
+                      ✓ {validCodes.length} código{validCodes.length !== 1 ? 's' : ''} disponible{validCodes.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -206,12 +333,24 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   }}
                   placeholder="Ej: PROC2024"
                   className={`w-full px-4 py-3 rounded-xl border ${
-                    codeError ? 'border-red-500' : 'border-line'
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono`}
+                    codeError ? 'border-red-500 bg-red-50' : 'border-line'
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono transition-colors`}
                   maxLength={20}
+                  autoComplete="off"
+                  aria-invalid={codeError ? 'true' : 'false'}
+                  aria-describedby={codeError ? 'code-error' : 'code-help'}
                 />
-                {codeError && (
-                  <p className="text-red-500 text-sm mt-2">{codeError}</p>
+                {codeError ? (
+                  <p id="code-error" className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {codeError}
+                  </p>
+                ) : (
+                  <p id="code-help" className="text-gray-500 text-xs mt-2">
+                    Solo letras mayúsculas y números
+                  </p>
                 )}
               </div>
 
@@ -235,18 +374,24 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   id="name"
                   type="text"
                   value={formData.name}
-                  onChange={(e) => {
-                    setFormData({ ...formData, name: e.target.value })
-                    setErrors({ ...errors, name: '' })
-                  }}
+                  onChange={(e) => handleFieldChange('name', e.target.value)}
+                  onBlur={() => handleBlur('name')}
                   placeholder="Juan Pérez"
                   className={`w-full px-4 py-3 rounded-xl border ${
-                    errors.name ? 'border-red-500' : 'border-line'
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    touched.name && errors.name ? 'border-red-500 bg-red-50' : 'border-line'
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
                   maxLength={50}
+                  disabled={isSubmitting}
+                  aria-invalid={touched.name && errors.name ? 'true' : 'false'}
+                  aria-describedby={errors.name ? 'name-error' : undefined}
                 />
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-2">{errors.name}</p>
+                {touched.name && errors.name && (
+                  <p id="name-error" className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.name}
+                  </p>
                 )}
               </div>
 
@@ -257,12 +402,15 @@ export default function ReviewModal({ onClose, onSubmit }) {
                 </label>
                 <StarInput />
                 <p className="text-center text-sm text-gray-500 mt-2">
-                  {formData.rating === 5 && 'Excelente'}
-                  {formData.rating === 4 && 'Muy bueno'}
-                  {formData.rating === 3 && 'Bueno'}
-                  {formData.rating === 2 && 'Regular'}
-                  {formData.rating === 1 && 'Malo'}
+                  {formData.rating === 5 && '⭐ Excelente'}
+                  {formData.rating === 4 && '⭐ Muy bueno'}
+                  {formData.rating === 3 && '⭐ Bueno'}
+                  {formData.rating === 2 && '⭐ Regular'}
+                  {formData.rating === 1 && '⭐ Necesita mejorar'}
                 </p>
+                {touched.rating && errors.rating && (
+                  <p className="text-red-500 text-sm mt-2 text-center">{errors.rating}</p>
+                )}
               </div>
 
               {/* Comentario */}
@@ -273,25 +421,33 @@ export default function ReviewModal({ onClose, onSubmit }) {
                 <textarea
                   id="comment"
                   value={formData.comment}
-                  onChange={(e) => {
-                    setFormData({ ...formData, comment: e.target.value })
-                    setErrors({ ...errors, comment: '' })
-                  }}
+                  onChange={(e) => handleFieldChange('comment', e.target.value)}
+                  onBlur={() => handleBlur('comment')}
                   placeholder="Cuéntanos sobre tu experiencia con ProconIng..."
                   className={`w-full px-4 py-3 rounded-xl border ${
-                    errors.comment ? 'border-red-500' : 'border-line'
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px] resize-y`}
+                    touched.comment && errors.comment ? 'border-red-500 bg-red-50' : 'border-line'
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px] resize-y transition-colors`}
                   maxLength={500}
+                  disabled={isSubmitting}
+                  aria-invalid={touched.comment && errors.comment ? 'true' : 'false'}
+                  aria-describedby="comment-help comment-error"
                 />
-                <div className="flex justify-between items-center mt-2">
-                  {errors.comment ? (
-                    <p className="text-red-500 text-sm">{errors.comment}</p>
-                  ) : (
-                    <p className="text-xs text-gray-500">
-                      Mínimo 10 caracteres
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-500">
+                <div className="flex justify-between items-start mt-2">
+                  <div className="flex-1">
+                    {touched.comment && errors.comment ? (
+                      <p id="comment-error" className="text-red-500 text-sm flex items-center gap-1">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {errors.comment}
+                      </p>
+                    ) : (
+                      <p id="comment-help" className="text-xs text-gray-500">
+                        Mínimo 10 caracteres
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 ml-2 flex-shrink-0">
                     {formData.comment.length}/500
                   </p>
                 </div>
@@ -306,36 +462,62 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   id="project"
                   type="text"
                   value={formData.project}
-                  onChange={(e) => {
-                    setFormData({ ...formData, project: e.target.value })
-                    setErrors({ ...errors, project: '' })
-                  }}
+                  onChange={(e) => handleFieldChange('project', e.target.value)}
+                  onBlur={() => handleBlur('project')}
                   placeholder="Ej: Casa Moderna 2024"
                   className={`w-full px-4 py-3 rounded-xl border ${
-                    errors.project ? 'border-red-500' : 'border-line'
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    touched.project && errors.project ? 'border-red-500 bg-red-50' : 'border-line'
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
                   maxLength={100}
+                  disabled={isSubmitting}
+                  aria-invalid={touched.project && errors.project ? 'true' : 'false'}
                 />
-                {errors.project && (
-                  <p className="text-red-500 text-sm mt-2">{errors.project}</p>
+                {touched.project && errors.project && (
+                  <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.project}
+                  </p>
                 )}
               </div>
+
+              {/* Error general de envío */}
+              {errors.submit && (
+                <div className="p-3 bg-red-100 border border-red-300 rounded-lg">
+                  <p className="text-red-700 text-sm">{errors.submit}</p>
+                </div>
+              )}
 
               {/* Botones */}
               <div className="flex gap-3 pt-4">
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => setStep(1)}
+                  onClick={() => {
+                    setStep(1)
+                    setTouched({})
+                    setErrors({})
+                  }}
                   className="flex-1 justify-center"
+                  disabled={isSubmitting}
                 >
                   Volver
                 </Button>
                 <Button
                   type="submit"
                   className="flex-1 justify-center"
+                  disabled={isSubmitting}
                 >
-                  Publicar reseña
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      </svg>
+                      Publicando...
+                    </span>
+                  ) : 'Publicar reseña'}
                 </Button>
               </div>
             </form>
