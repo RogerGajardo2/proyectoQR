@@ -1,18 +1,16 @@
 // src/components/admin/AdminCodes/index.jsx - REFACTORIZADO
 import { useState, useEffect } from 'react'
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth'
+import { signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../../lib/firebase'
-import { SecurityManager, loginRateLimiter } from '../../../utils/security'
+import { loginRateLimiter } from '../../../utils/security'
 import { logger } from '../../../utils/logger'
 import { ReviewProvider } from '../../../contexts/ReviewContext'
 import { CodeProvider } from '../../../contexts/CodeContext'
 
 import AdminLogin from './AdminLogin'
-import AdminHeader from './AdminHeader'
-import AdminTabs from './AdminTabs'
+import { AdminHeader, AdminTabs, ImportMessage } from './AdminComponents'
 import CodesTab from './CodesTab'
 import ReviewsTab from './ReviewsTab'
-import ImportMessage from './ImportMessage'
 
 export default function AdminCodes() {
   const [user, setUser] = useState(null)

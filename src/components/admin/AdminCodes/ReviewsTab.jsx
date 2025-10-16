@@ -1,8 +1,8 @@
-// src/components/admin/AdminCodes/ReviewsTab.jsx - Usando Context
+// src/components/admin/AdminCodes/ReviewsTab.jsx
 import { useState, useMemo } from 'react'
 import { useReviews } from '../../../contexts/ReviewContext'
 import Button from '../../ui/Button'
-import { StatsCard } from './AdminComponents'
+import { StatsCard } from './AdminComponents' 
 import { SecurityManager } from '../../../utils/security'
 import { logger } from '../../../utils/logger'
 

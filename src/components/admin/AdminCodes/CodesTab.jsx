@@ -1,8 +1,8 @@
-// src/components/admin/AdminCodes/CodesTab.jsx - Usando Context
+// src/components/admin/AdminCodes/CodesTab.jsx
 import { useState, useRef } from 'react'
 import { useCodes } from '../../../contexts/CodeContext'
 import Button from '../../ui/Button'
-import { StatsCard } from './AdminComponents'
+import { StatsCard } from './AdminComponents' 
 import { SecurityManager } from '../../../utils/security'
 import { logger } from '../../../utils/logger'
 
