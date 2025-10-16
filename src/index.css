@@ -898,3 +898,395 @@ main {
     width: auto;
   }
 }
+
+/* Animación para las estrellas */
+@keyframes starPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.star-rating svg:hover {
+  animation: starPulse 0.3s ease;
+}
+
+/* Modal overlay con blur */
+.review-modal-overlay {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Animación de entrada del modal */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.review-modal-content {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Barra de progreso de distribución */
+.distribution-bar {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tarjeta de reseña con efecto hover mejorado */
+.review-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.review-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* Estrellas con gradiente dorado */
+.star-gold {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Badge de estado */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-badge.available {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.used {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Animación para contador de reseñas */
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.review-count {
+  animation: countUp 0.5s ease-out;
+}
+
+/* Formulario de reseña - mejoras visuales */
+.review-form input:focus,
+.review-form textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.review-form textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+/* Tabla de administración responsive */
+@media (max-width: 768px) {
+  .admin-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .admin-table table {
+    min-width: 600px;
+  }
+}
+
+/* Toast de notificación (opcional) */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease-out;
+  z-index: 10001;
+}
+
+.toast.success {
+  border-left: 4px solid #10b981;
+}
+
+.toast.error {
+  border-left: 4px solid #ef4444;
+}
+
+/* Loading spinner para reviews */
+.reviews-loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f4f6;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Skeleton loader para cards de reseñas */
+.review-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 0.5rem;
+  height: 200px;
+}
+
+/* Responsive para reviews */
+@media (max-width: 640px) {
+  .review-modal-content {
+    max-width: 95vw;
+    margin: 1rem;
+  }
+  
+  .star-rating svg {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .review-stats {
+    flex-direction: column;
+  }
+}
+
+/* Efecto de foco visible para accesibilidad */
+.review-form *:focus-visible,
+button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Transiciones suaves para todos los elementos interactivos */
+.review-interactive {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Estilos para código de acceso */
+.code-input {
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.code-input:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Indicador de validación */
+.validation-success {
+  border-color: #10b981 !important;
+  background-color: #f0fdf4;
+}
+
+.validation-error {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2;
+}
+
+/* Animación para mensaje de éxito */
+@keyframes successPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+.success-message {
+  animation: successPulse 0.6s ease;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+}
+
+/* Grid de reseñas con auto-fit */
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .reviews-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Botón de reseña flotante (opcional) */
+.floating-review-button {
+  position: fixed;
+  bottom: 5rem;
+  right: 1rem;
+  z-index: 40;
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Estrellas con efecto brillante */
+.star-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.star-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.5),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Mejoras para modo oscuro (opcional) */
+@media (prefers-color-scheme: dark) {
+  .review-card {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+  
+  .review-modal-content {
+    background-color: #1f2937;
+    color: #f9fafb;
+  }
+}
+
+/* Transiciones para cambios de contenido */
+.review-content-transition {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.review-content-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.review-content-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Estilos para empty state */
+.empty-reviews {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.empty-reviews-icon {
+  width: 5rem;
+  height: 5rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.5;
+  color: #9ca3af;
+}
+
+/* Scroll suave para sección de reseñas */
+#resenas {
+  scroll-margin-top: calc(var(--nav-h) + 1rem);
+}
+
+/* Efecto de carga para estadísticas */
+.stats-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  height: 8rem;
+  border-radius: 1rem;
+}
+
+/* Contador animado */
+.animated-counter {
+  display: inline-block;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mejoras de accesibilidad */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible mejorado */
+*:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Hover states suaves */
+.review-hover-effect {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.review-hover-effect:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}

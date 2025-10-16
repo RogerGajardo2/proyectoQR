@@ -1,4 +1,6 @@
+// src/components/Footer.jsx (CON LINK A ADMIN)
 import { Link } from 'react-router-dom'
+
 const IconInstagram = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="2"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
 )
@@ -11,6 +13,10 @@ const IconMail = () => (
 const IconUser = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.2" stroke="currentColor" strokeWidth="2"/><path d="M6 19a6 6 0 0 1 12 0" stroke="currentColor" strokeWidth="2" fill="none"/></svg>
 )
+const IconAdmin = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="currentColor" strokeWidth="2"/></svg>
+)
+
 export default function Footer(){
   const email = 'Contacto@proconing.cl'
   const subject = 'Consulta desde la web'
@@ -34,6 +40,7 @@ export default function Footer(){
   }
 
   const circle = 'w-11 h-11 grid place-items-center rounded-full border btn-gold bg-white text-title shadow-soft transition hover:bg-title hover:text-white'
+  
   return (
     <footer className="fixed bottom-0 inset-x-0 z-[9999] border-t border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 no-glass" 
             style={{ 
@@ -45,14 +52,23 @@ export default function Footer(){
             }}>
       <div className="container py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-title/70">
-          {/**<img src={import.meta.env.BASE_URL + 'resources/logo.png'} alt="ProconIng" className="w-24 h-24"/>**/}
           <span>© {new Date().getFullYear()} ProconIng</span>
+          {/* Link secreto al admin - hacer triple clic */}
+          <Link 
+            to="/admin/codigos" 
+            className="opacity-0 hover:opacity-100 transition-opacity duration-300 text-xs"
+            title="Panel de administración"
+          >
+            🔐
+          </Link>
         </div>
         <div className="flex items-center gap-2">
           <a aria-label="Instagram" href="https://www.instagram.com/procon.ing?igsh=MTV6OWljNjZjYmRlcQ%3D%3D&utm_source=qr" target="_blank" rel="noreferrer" className={circle}><IconInstagram /></a>
           <a aria-label="WhatsApp" href="https://wa.me/56973495086" target="_blank" rel="noreferrer" className={circle}><IconWhatsApp /></a>
           <a aria-label="Enviar correo" href="#enviar-correo-web" onClick={sendEmail} className={circle}><IconMail /></a>
           <Link aria-label="Perfil" to="/" className={circle}><IconUser /></Link>
+          {/* Botón visible de admin (opcional - comentado por defecto) */}
+          <Link aria-label="Admin" to="/admin/codigos" className={circle}><IconAdmin /></Link> 
         </div>
       </div>
     </footer>

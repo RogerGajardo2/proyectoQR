@@ -1,3 +1,4 @@
+// src/components/Header.jsx (ACTUALIZADO)
 import { useState, useEffect } from 'react'
 import { useGoToSection } from '../hooks/useGoToSection'
 
@@ -33,12 +34,12 @@ export default function Header() {
       <div className="container h-full flex items-center justify-between gap-4">
         <button type="button" onClick={() => go('inicio')} aria-label="Ir al inicio" className="flex items-center gap-2">
           <img src={import.meta.env.BASE_URL + 'resources/logo.png'} alt="ProconIng" className="w-28 h-28"/>
-          {/**<span className="text-title tracking-wider font-medium">ProconIng</span>**/}
         </button>
         <nav className="hidden md:flex items-center gap-3">
           <button type="button" className={`px-2 py-2 ${linkCls}`} onClick={() => go('inicio')}>Inicio</button>
           <button type="button" className={`px-2 py-2 ${linkCls}`} onClick={() => go('proyectos')}>Proyectos</button>
           <button type="button" className={`px-2 py-2 ${linkCls}`} onClick={() => go('quienes-somos')}>Quiénes somos</button>
+          <button type="button" className={`px-2 py-2 ${linkCls}`} onClick={() => go('resenas')}>Reseñas</button>
           <button type="button" className={`px-2 py-2 ${linkCls}`} onClick={() => go('contacto')}>Contáctanos</button>
         </nav>
         <button type="button" className="relative md:hidden w-10 h-10" aria-expanded={open} aria-controls="primary-nav" aria-label={open ? 'Cerrar menú' : 'Abrir menú'} onClick={() => setOpen(v => !v)}>
@@ -54,7 +55,6 @@ export default function Header() {
         className={`md:hidden fixed inset-0 top-[var(--nav-h)] bg-black/35 transition-opacity z-[55] ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       />
 
-      {/* Drawer móvil: Desde header hasta antes del footer con fondo blanco forzado */}
       <nav
         id="primary-nav"
         className={`md:hidden fixed top-[var(--nav-h)] right-0 w-1/2 min-w-[300px] border-l border-line shadow-2xl transition-transform duration-300 z-[60] no-glass ${open ? 'translate-x-0' : 'translate-x-full'}`}
@@ -75,6 +75,7 @@ export default function Header() {
           <button type="button" className={`${linkCls} text-left text-lg py-3`} onClick={() => { go('inicio'); setOpen(false) }}>Inicio</button>
           <button type="button" className={`${linkCls} text-left text-lg py-3`} onClick={() => { go('proyectos'); setOpen(false) }}>Proyectos</button>
           <button type="button" className={`${linkCls} text-left text-lg py-3`} onClick={() => { go('quienes-somos'); setOpen(false) }}>Quiénes somos</button>
+          <button type="button" className={`${linkCls} text-left text-lg py-3`} onClick={() => { go('resenas'); setOpen(false) }}>Reseñas</button>
           <button type="button" className={`${linkCls} text-left text-lg py-3`} onClick={() => { go('contacto'); setOpen(false) }}>Contáctanos</button>
         </div>
       </nav>
