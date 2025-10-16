@@ -3,10 +3,68 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ProconIng</title>
+    
+    <!-- SEO Meta Tags -->
+    <title>ProconIng - Arquitectura y Construcción</title>
+    <meta name="description" content="Soluciones integrales en arquitectura, construcción y gestión de obras. Diseñamos y ejecutamos proyectos que perduran." />
+    <meta name="keywords" content="arquitectura, construcción, obras, proyectos, Chile, ProconIng" />
+    <meta name="author" content="ProconIng" />
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="ProconIng - Arquitectura y Construcción" />
+    <meta property="og:description" content="Soluciones integrales en arquitectura, construcción y gestión de obras" />
+    <meta property="og:site_name" content="ProconIng" />
+    
+    <!-- Theme Color -->
     <meta name="theme-color" content="#ffffff" />
+    
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    
+    <!-- Content Security Policy -->
+    <meta 
+      http-equiv="Content-Security-Policy" 
+      content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com;
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: https: blob:;
+        font-src 'self' data:;
+        connect-src 'self' 
+          https://api.web3forms.com 
+          https://*.googleapis.com 
+          https://*.firebaseapp.com
+          https://*.firebase.com
+          https://identitytoolkit.googleapis.com;
+        media-src 'self' blob:;
+        object-src 'none';
+        frame-src 'none';
+        base-uri 'self';
+        form-action 'self' https://api.web3forms.com;
+        upgrade-insecure-requests;
+      "
+    />
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://api.web3forms.com" />
+    <link rel="preconnect" href="https://firebase.googleapis.com" />
+    
+    <!-- DNS Prefetch -->
+    <link rel="dns-prefetch" href="https://api.web3forms.com" />
+    <link rel="dns-prefetch" href="https://firebase.googleapis.com" />
   </head>
   <body class="bg-white text-text">
+    <noscript>
+      <div style="padding: 2rem; text-align: center; background: #fee; color: #c00;">
+        <h1>JavaScript Requerido</h1>
+        <p>Esta aplicación requiere JavaScript para funcionar correctamente. Por favor, habilita JavaScript en tu navegador.</p>
+      </div>
+    </noscript>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

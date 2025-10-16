@@ -1,32 +1,108 @@
+# Node modules
 node_modules/
 .pnpm-store/
-.dist/
+
+# Build outputs
 dist/
+.dist/
+build/
 .vite/
 .cache/
+
+# Coverage
 coverage/
+*.lcov
 
 # Environment variables
 .env
 .env.*
 !.env.example
 .env.local
+.env.development
 .env.production
+.env.test
 
 # Firebase
 .firebase/
 .firebaserc
 firebase-debug.log
+firebase-debug.*.log
 
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-*.log*
 pnpm-debug.log*
+lerna-debug.log*
+
+# OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+
+# IDE
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# Deployment
 .vercel/
 .netlify/
-*.local
+.now/
+
+# Temporary files
 *.tmp
-*.swp
+*.temp
+.tmp/
+.temp/
+
+# Debug files
+debug/
+src/__debug__/
+*.debug.js
+
+# Local development
+*.local
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Test files
+test-results/
+playwright-report/
+cypress/videos/
+cypress/screenshots/
+
+# Documentation
+docs/.vitepress/dist
+docs/.vitepress/cache
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Security
+*.key
+*.pem
+*.p12
+*.crt
+secrets/

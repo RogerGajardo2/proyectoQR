@@ -1,42 +1,59 @@
-// src/components/ProjectsCarousel.jsx (VERSIÓN CON BOTÓN A LISTA - MOBILE OPTIMIZED + SWIPE)
-
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+// src/components/ProjectsCarousel.jsx - VERSIÓN OPTIMIZADA CON MEMOIZACIÓN
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Button from './ui/Button'
 import { getCarouselSlides } from '../data/projectsData'
+import { logger } from '../utils/logger'
 
-// Componente para cada slide del carrusel
-const CarouselSlide = ({ slide, onProjectClick }) => (
-  <div className="carousel-slide group">
-    <img 
-      className="carousel-image" 
-      src={slide.img} 
-      alt={slide.caption}
-      loading="lazy"
-    />
-    
-    {/* Overlay base sin efecto hover */}
-    <div className="absolute inset-0 bg-black/20 transition-all duration-300" />
-    
-    {/* Botón central para ver el proyecto */}
-    <Button 
-      onClick={() => onProjectClick(slide.id)}
-      variant="outline"
-      className="project-button"
-      aria-label={`Ver proyecto ${slide.title}`}
-    >
-      Ver Proyecto
-    </Button>
-    
-    {/* Caption del proyecto */}
-    <div className="carousel-caption absolute left-0 bottom-0">
-      {slide.caption}
+// ==================== COMPONENTES MEMOIZADOS ====================
+
+const CarouselSlide = memo(({ slide, onProjectClick }) => {
+  const [imageError, setImageError] = useState(false)
+
+  if (imageError) {
+    return (
+      <div className="carousel-slide group bg-gray-200 flex items-center justify-center">
+        <p className="text-gray-500">Imagen no disponible</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="carousel-slide group">
+      <img 
+        className="carousel-image" 
+        src={slide.img} 
+        alt={slide.caption}
+        loading="lazy"
+        onError={() => {
+          logger.warn('Error cargando imagen de carrusel', { slideId: slide.id })
+          setImageError(true)
+        }}
+      />
+      
+      <div className="absolute inset-0 bg-black/20 transition-all duration-300" />
+      
+      <Button 
+        onClick={() => onProjectClick(slide.id)}
+        variant="outline"
+        className="project-button"
+        aria-label={`Ver proyecto ${slide.title}`}
+      >
+        Ver Proyecto
+      </Button>
+      
+      <div className="carousel-caption absolute left-0 bottom-0">
+        {slide.caption}
+      </div>
     </div>
-  </div>
-)
+  )
+}, (prevProps, nextProps) => {
+  return prevProps.slide.id === nextProps.slide.id
+})
 
-// Componente para botones de navegación
-const NavigationButton = ({ direction, onClick, ariaLabel }) => (
+CarouselSlide.displayName = 'CarouselSlide'
+
+const NavigationButton = memo(({ direction, onClick, ariaLabel }) => (
   <button 
     onClick={onClick}
     aria-label={ariaLabel}
@@ -45,15 +62,16 @@ const NavigationButton = ({ direction, onClick, ariaLabel }) => (
       bg-transparent md:bg-black/70 md:hover:bg-black/90 
       text-white p-3 md:rounded-full 
       transition-all duration-200 backdrop-blur-sm z-50 
-      hover:scale-110
+      hover:scale-110 text-3xl font-light
     `}
   >
     {direction === 'left' ? '‹' : '›'}
   </button>
-)
+))
 
-// Componente para indicadores de navegación
-const NavigationDots = ({ slides, currentIndex, onDotClick }) => (
+NavigationButton.displayName = 'NavigationButton'
+
+const NavigationDots = memo(({ slides, currentIndex, onDotClick }) => (
   <div className="absolute inset-x-0 -bottom-2 pb-5 flex justify-center gap-2 z-20 max-md:hidden">
     {slides.map((_, i) => (
       <button 
@@ -64,7 +82,13 @@ const NavigationDots = ({ slides, currentIndex, onDotClick }) => (
       />
     ))}
   </div>
-)
+), (prevProps, nextProps) => {
+  return prevProps.currentIndex === nextProps.currentIndex
+})
+
+NavigationDots.displayName = 'NavigationDots'
+
+// ==================== COMPONENTE PRINCIPAL ====================
 
 export default function ProjectsCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -75,24 +99,45 @@ export default function ProjectsCarousel() {
   const navigate = useNavigate()
   
   // Obtener slides de manera optimizada y memoizada
-  const slides = useMemo(() => getCarouselSlides(), [])
+  const slides = useMemo(() => {
+    try {
+      const carouselSlides = getCarouselSlides()
+      logger.info('Slides del carrusel cargados', { count: carouselSlides.length })
+      return carouselSlides
+    } catch (error) {
+      logger.error('Error cargando slides del carrusel', error)
+      return []
+    }
+  }, [])
   
   // Función para navegar a un índice específico
   const goToSlide = useCallback((index) => {
+    if (!slides.length) return
     const normalizedIndex = ((index % slides.length) + slides.length) % slides.length
     setCurrentIndex(normalizedIndex)
+    logger.info('Navegando a slide', { index: normalizedIndex })
   }, [slides.length])
   
   // Función para manejar clic en proyecto
   const handleProjectClick = useCallback((projectId) => {
-    navigate(`/inicio/proyecto-${projectId}`)
+    try {
+      logger.info('Click en proyecto desde carrusel', { projectId })
+      navigate(`/inicio/proyecto-${projectId}`)
+    } catch (error) {
+      logger.error('Error navegando a proyecto', { projectId, error })
+    }
   }, [navigate])
 
   const handleViewAllProjects = useCallback(() => {
-    navigate('/inicio/proyectos')
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }, 100)
+    try {
+      logger.info('Navegando a lista completa de proyectos')
+      navigate('/inicio/proyectos')
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }, 100)
+    } catch (error) {
+      logger.error('Error navegando a lista de proyectos', error)
+    }
   }, [navigate])
   
   // Funciones de navegación memoizadas
@@ -121,23 +166,23 @@ export default function ProjectsCarousel() {
     const minSwipeDistance = 50
     
     if (distance > minSwipeDistance) {
-      // Swipe izquierda - siguiente slide
       goToNext()
     } else if (distance < -minSwipeDistance) {
-      // Swipe derecha - slide anterior
       goToPrevious()
     }
   }, [touchStart, touchEnd, goToNext, goToPrevious])
   
   // Efecto para actualizar la transformación del track
   useEffect(() => {
-    if (trackRef.current) {
+    if (trackRef.current && slides.length > 0) {
       trackRef.current.style.transform = `translateX(-${currentIndex * 100}%)`
     }
-  }, [currentIndex])
+  }, [currentIndex, slides.length])
   
   // Efecto para el auto-play del carrusel
   useEffect(() => {
+    if (slides.length === 0) return
+
     const startTimer = () => {
       timerRef.current = setInterval(() => {
         goToSlide(currentIndex + 1)
@@ -152,7 +197,7 @@ export default function ProjectsCarousel() {
     
     startTimer()
     return clearTimer
-  }, [currentIndex, goToSlide])
+  }, [currentIndex, goToSlide, slides.length])
 
   // Efecto para manejar resize y aplicar transición correcta
   useEffect(() => {
@@ -167,10 +212,8 @@ export default function ProjectsCarousel() {
       }
     }
 
-    // Aplicar al cargar
     handleResize()
     
-    // Escuchar cambios de tamaño
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
@@ -179,14 +222,17 @@ export default function ProjectsCarousel() {
   const handleMouseEnter = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current)
+      logger.info('Auto-play pausado (hover)')
     }
   }, [])
   
   const handleMouseLeave = useCallback(() => {
+    if (slides.length === 0) return
     timerRef.current = setInterval(() => {
       goToSlide(currentIndex + 1)
     }, 6000)
-  }, [currentIndex, goToSlide])
+    logger.info('Auto-play reanudado')
+  }, [currentIndex, goToSlide, slides.length])
   
   // Manejar navegación por teclado
   useEffect(() => {
@@ -207,6 +253,7 @@ export default function ProjectsCarousel() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [goToPrevious, goToNext])
   
+  // Renderizar mensaje si no hay slides
   if (!slides.length) {
     return (
       <section id="proyectos" className="py-16 bg-alt scroll-mt-24">
@@ -234,7 +281,6 @@ export default function ProjectsCarousel() {
             </p>
           </div>
           
-          {/* Botón para ver todos los proyectos */}
           <div className="flex flex-col sm:flex-row gap-2">
             <Button 
               onClick={handleViewAllProjects}
@@ -250,14 +296,10 @@ export default function ProjectsCarousel() {
           </div>
         </div>
         
-        {/* Carrusel principal - salir del container en móvil */}
+        {/* Carrusel principal */}
         <div className="-mx-4 md:mx-0">
           <div 
-            className="
-              carousel-container relative rounded-2xl shadow-soft bg-white group
-              /* En móvil: sin bordes redondeados ni sombra */
-              max-md:rounded-none max-md:shadow-none max-md:bg-transparent
-            " 
+            className="carousel-container relative rounded-2xl shadow-soft bg-white group max-md:rounded-none max-md:shadow-none max-md:bg-transparent" 
             data-reveal
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -266,6 +308,7 @@ export default function ProjectsCarousel() {
             onTouchEnd={handleTouchEnd}
             role="region"
             aria-label="Galería de proyectos"
+            aria-live="polite"
           >
             {/* Track del carrusel */}
             <div 
@@ -293,7 +336,7 @@ export default function ProjectsCarousel() {
               ariaLabel="Proyecto siguiente"
             />
             
-            {/* Indicadores de navegación - Ocultos en mobile */}
+            {/* Indicadores de navegación */}
             <NavigationDots
               slides={slides}
               currentIndex={currentIndex}
@@ -302,7 +345,7 @@ export default function ProjectsCarousel() {
           </div>
         </div>
         
-        {/* Información adicional y enlaces */}
+        {/* Información adicional */}
         <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4" data-reveal>
           <div className="text-center sm:text-left">
             <p className="text-sm text-text/70">

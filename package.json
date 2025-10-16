@@ -1,13 +1,23 @@
 {
   "name": "proconing-landing",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
+  "description": "Sitio web corporativo para ProconIng - Arquitectura y Construcción",
+  "author": "ProconIng <contacto@proconing.cl>",
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "preview:gh": "vite preview --base /proyectoQR/ --strictPort --port 4174 --open /proyectoQR/"
+    "preview:gh": "vite preview --base /proyectoQR/ --strictPort --port 4174 --open /proyectoQR/",
+    "lint": "eslint src --ext .js,.jsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint src --ext .js,.jsx --fix",
+    "audit": "npm audit --audit-level=moderate",
+    "audit:fix": "npm audit fix",
+    "clean": "rm -rf node_modules dist .vite",
+    "reinstall": "npm run clean && npm install",
+    "check": "npm run lint && npm run audit"
   },
   "dependencies": {
     "firebase": "^12.4.0",
@@ -18,8 +28,27 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.17",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.4",
     "vite": "^5.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }

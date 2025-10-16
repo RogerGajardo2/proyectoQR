@@ -1,5 +1,9 @@
-// src/data/projectsData.js
-import { createProject } from './projectConfig';
+// src/data/projectsData.js - VERSIÓN MEJORADA CON VALIDACIÓN
+import { createProject } from './projectConfig'
+import { logger } from '../utils/logger'
+
+// Caché de proyectos validados
+const projectCache = new Map()
 
 export const projectsData = {
   'proyecto-5': createProject('proyecto-5', {
@@ -170,18 +174,268 @@ export const projectsData = {
       'Mantención de cierre perimetral'
     ]
   })
+}
 
-  
-};
+/**
+ * Valida la estructura de un proyecto
+ * @param {Object} project - Proyecto a validar
+ * @returns {boolean} - true si es válido
+ */
+const validateProjectStructure = (project) => {
+  if (!project || typeof project !== 'object') {
+    logger.error('Proyecto no es un objeto válido', project)
+    return false
+  }
 
-export const getAllProjects = () => Object.values(projectsData);
-export const getProject = (id) => projectsData[id];
+  const requiredFields = ['id', 'title', 'description', 'imageCount', 'features', 'gallery', 'mainImage']
+  const missingFields = requiredFields.filter(field => !project[field])
+
+  if (missingFields.length > 0) {
+    logger.error('Proyecto tiene campos faltantes', { id: project.id, missingFields })
+    return false
+  }
+
+  if (typeof project.imageCount !== 'number' || project.imageCount < 1) {
+    logger.error('imageCount inválido', { id: project.id, imageCount: project.imageCount })
+    return false
+  }
+
+  if (!Array.isArray(project.features) || project.features.length === 0) {
+    logger.error('Features inválidas', { id: project.id })
+    return false
+  }
+
+  if (!Array.isArray(project.gallery) || project.gallery.length === 0) {
+    logger.error('Galería vacía', { id: project.id })
+    return false
+  }
+
+  return true
+}
+
+/**
+ * Obtiene todos los proyectos validados
+ * @returns {Array} - Array de proyectos
+ */
+export const getAllProjects = () => {
+  try {
+    const projects = Object.values(projectsData)
+    const validProjects = projects.filter(validateProjectStructure)
+    
+    if (validProjects.length !== projects.length) {
+      logger.warn('Algunos proyectos no pasaron la validación', {
+        total: projects.length,
+        valid: validProjects.length
+      })
+    }
+
+    return validProjects
+  } catch (error) {
+    logger.error('Error obteniendo todos los proyectos', error)
+    return []
+  }
+}
+
+/**
+ * Obtiene un proyecto por ID con validación
+ * @param {string} id - ID del proyecto
+ * @returns {Object|null} - Proyecto o null si no existe
+ */
+export const getProject = (id) => {
+  try {
+    // Validar ID
+    if (!id || typeof id !== 'string') {
+      logger.error('ID de proyecto inválido', { id, type: typeof id })
+      return null
+    }
+
+    // Sanitizar ID para prevenir ataques
+    const sanitizedId = id.trim().toLowerCase()
+    
+    // Validar formato del ID
+    if (!/^proyecto-[0-9]+$/.test(sanitizedId)) {
+      logger.warn('Formato de ID de proyecto no válido', { id: sanitizedId })
+      return null
+    }
+
+    // Verificar si está en caché
+    if (projectCache.has(sanitizedId)) {
+      return projectCache.get(sanitizedId)
+    }
+
+    const project = projectsData[sanitizedId]
+
+    if (!project) {
+      logger.warn('Proyecto no encontrado', { id: sanitizedId })
+      return null
+    }
+
+    // Validar estructura
+    if (!validateProjectStructure(project)) {
+      logger.error('Proyecto no pasó validación', { id: sanitizedId })
+      return null
+    }
+
+    // Guardar en caché
+    projectCache.set(sanitizedId, project)
+
+    return project
+  } catch (error) {
+    logger.error('Error obteniendo proyecto', { id, error })
+    return null
+  }
+}
+
+/**
+ * Obtiene slides para el carrusel con validación
+ * @returns {Array} - Array de slides
+ */
 export const getCarouselSlides = () => {
-  return getAllProjects().map(project => ({
-    img: project.mainImage,
-    caption: project.caption,
-    id: project.id,
-    title: project.title,
-    imageCount: project.imageCount
-  }));
-};
+  try {
+    const allProjects = getAllProjects()
+    
+    return allProjects.map(project => {
+      // Validar que mainImage existe
+      if (!project.mainImage) {
+        logger.warn('Proyecto sin mainImage', { id: project.id })
+        return null
+      }
+
+      return {
+        img: project.mainImage,
+        caption: project.caption || `${project.type} · ${project.area} · ${project.year}`,
+        id: project.id,
+        title: project.title,
+        imageCount: project.imageCount
+      }
+    }).filter(Boolean) // Filtrar nulls
+  } catch (error) {
+    logger.error('Error obteniendo slides del carrusel', error)
+    return []
+  }
+}
+
+/**
+ * Busca proyectos por término
+ * @param {string} searchTerm - Término de búsqueda
+ * @returns {Array} - Proyectos que coinciden
+ */
+export const searchProjects = (searchTerm) => {
+  try {
+    if (!searchTerm || typeof searchTerm !== 'string') {
+      return []
+    }
+
+    const term = searchTerm.toLowerCase().trim()
+    
+    if (term.length < 2) {
+      logger.info('Término de búsqueda muy corto', { term })
+      return []
+    }
+
+    const allProjects = getAllProjects()
+
+    return allProjects.filter(project => {
+      return (
+        project.title.toLowerCase().includes(term) ||
+        project.subtitle.toLowerCase().includes(term) ||
+        project.description.toLowerCase().includes(term) ||
+        project.type.toLowerCase().includes(term) ||
+        project.features.some(f => f.toLowerCase().includes(term))
+      )
+    })
+  } catch (error) {
+    logger.error('Error buscando proyectos', { searchTerm, error })
+    return []
+  }
+}
+
+/**
+ * Obtiene proyectos por tipo
+ * @param {string} type - Tipo de proyecto
+ * @returns {Array} - Proyectos del tipo especificado
+ */
+export const getProjectsByType = (type) => {
+  try {
+    if (!type || typeof type !== 'string') {
+      return []
+    }
+
+    const allProjects = getAllProjects()
+    const normalizedType = type.toLowerCase().trim()
+
+    return allProjects.filter(project => 
+      project.type.toLowerCase().includes(normalizedType)
+    )
+  } catch (error) {
+    logger.error('Error obteniendo proyectos por tipo', { type, error })
+    return []
+  }
+}
+
+/**
+ * Limpia la caché de proyectos
+ */
+export const clearProjectCache = () => {
+  projectCache.clear()
+  logger.info('Caché de proyectos limpiada')
+}
+
+/**
+ * Obtiene estadísticas de proyectos
+ * @returns {Object} - Estadísticas
+ */
+export const getProjectStats = () => {
+  try {
+    const allProjects = getAllProjects()
+
+    const totalImages = allProjects.reduce((sum, p) => sum + p.imageCount, 0)
+    const projectTypes = [...new Set(allProjects.map(p => p.type))]
+    const yearRange = allProjects.reduce((acc, p) => {
+      const year = parseInt(p.year)
+      return {
+        min: Math.min(acc.min, year),
+        max: Math.max(acc.max, year)
+      }
+    }, { min: Infinity, max: -Infinity })
+
+    return {
+      totalProjects: allProjects.length,
+      totalImages,
+      projectTypes,
+      yearRange,
+      cachedProjects: projectCache.size
+    }
+  } catch (error) {
+    logger.error('Error obteniendo estadísticas de proyectos', error)
+    return {
+      totalProjects: 0,
+      totalImages: 0,
+      projectTypes: [],
+      yearRange: { min: 0, max: 0 },
+      cachedProjects: 0
+    }
+  }
+}
+
+// Exportar para debugging en consola
+if (typeof window !== 'undefined') {
+  window.ProconProjects = {
+    getAll: getAllProjects,
+    getById: getProject,
+    search: searchProjects,
+    getByType: getProjectsByType,
+    clearCache: clearProjectCache,
+    getStats: getProjectStats
+  }
+}
+
+export default {
+  getAllProjects,
+  getProject,
+  getCarouselSlides,
+  searchProjects,
+  getProjectsByType,
+  clearProjectCache,
+  getProjectStats
+}

@@ -1,6 +1,8 @@
-// src/components/ReviewModal.jsx (CON VALIDACIONES MEJORADAS)
+// src/components/ReviewModal.jsx - VERSIÓN MEJORADA CON SEGURIDAD
 import { useState, useEffect } from 'react'
 import Button from './ui/Button'
+import { SecurityManager, reviewRateLimiter } from '../utils/security'
+import { logger } from '../utils/logger'
 
 export default function ReviewModal({ onClose, onSubmit }) {
   const [step, setStep] = useState(1) // 1: código, 2: formulario
@@ -38,8 +40,9 @@ export default function ReviewModal({ onClose, onSubmit }) {
           .map(c => c.code)
         
         setValidCodes(available)
+        logger.info('Códigos disponibles cargados', { count: available.length })
       } catch (error) {
-        console.error('Error cargando códigos:', error)
+        logger.error('Error cargando códigos', error)
         setValidCodes([])
       }
     }
@@ -58,11 +61,28 @@ export default function ReviewModal({ onClose, onSubmit }) {
     const usedCodes = JSON.parse(localStorage.getItem('proconing_used_codes') || '[]')
     usedCodes.push(code)
     localStorage.setItem('proconing_used_codes', JSON.stringify(usedCodes))
+    logger.info('Código marcado como usado', { code })
+  }
+
+  // Verificar si el código fue usado recientemente
+  const wasUsedRecently = (code) => {
+    const recentReviews = JSON.parse(localStorage.getItem('proconing_recent_submissions') || '[]')
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000
+    
+    return recentReviews.some(r => 
+      r.code === code && 
+      r.timestamp > fiveMinutesAgo
+    )
   }
 
   // Validar campo individual
   const validateField = (name, value) => {
     let error = ''
+
+    // Detectar contenido malicioso
+    if (SecurityManager.detectSpam(value)) {
+      return 'Contenido sospechoso detectado'
+    }
 
     switch (name) {
       case 'name':
@@ -84,16 +104,6 @@ export default function ReviewModal({ onClose, onSubmit }) {
           error = 'El comentario debe tener al menos 10 caracteres'
         } else if (value.trim().length > 500) {
           error = 'El comentario no puede exceder 500 caracteres'
-        } else {
-          // Detectar spam
-          const spamPatterns = [
-            /viagra|cialis|casino|lottery/i,
-            /(https?:\/\/[^\s]+){2,}/g, // Múltiples URLs
-          ]
-          
-          if (spamPatterns.some(pattern => pattern.test(value))) {
-            error = 'El comentario contiene contenido no permitido'
-          }
         }
         break
 
@@ -130,7 +140,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
   // Validar código
   const handleCodeSubmit = (e) => {
     e.preventDefault()
-    const trimmedCode = code.trim().toUpperCase()
+    const trimmedCode = SecurityManager.sanitizeInput(code.trim().toUpperCase(), 50)
 
     if (!trimmedCode) {
       setCodeError('Por favor ingresa un código')
@@ -143,7 +153,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
     }
 
     if (!/^[A-Z0-9]+$/.test(trimmedCode)) {
-      setCodeError('El código solo puede contener letras y números')
+      setCodeError('El código solo puede contener letras mayúsculas y números')
       return
     }
 
@@ -158,16 +168,25 @@ export default function ReviewModal({ onClose, onSubmit }) {
       } else {
         setCodeError('Código inválido. Verifica que esté escrito correctamente.')
       }
+      logger.warn('Intento de código inválido', { code: trimmedCode })
       return
     }
 
     if (isCodeUsed(trimmedCode)) {
       setCodeError('Este código ya ha sido utilizado')
+      logger.warn('Intento de código ya usado', { code: trimmedCode })
+      return
+    }
+
+    if (wasUsedRecently(trimmedCode)) {
+      setCodeError('Este código fue usado recientemente. Espera unos minutos.')
+      logger.warn('Código usado recientemente', { code: trimmedCode })
       return
     }
 
     setCodeError('')
     setStep(2)
+    logger.info('Código validado', { code: trimmedCode })
   }
 
   // Validar formulario completo
@@ -205,7 +224,6 @@ export default function ReviewModal({ onClose, onSubmit }) {
     setErrors(newErrors)
 
     if (Object.keys(newErrors).length > 0) {
-      // Hacer scroll al primer error
       const firstErrorField = Object.keys(newErrors)[0]
       const element = document.getElementById(firstErrorField)
       if (element) {
@@ -214,22 +232,54 @@ export default function ReviewModal({ onClose, onSubmit }) {
       return
     }
 
+    // Verificar rate limiting
+    const trimmedCode = code.trim().toUpperCase()
+    const limitCheck = reviewRateLimiter.checkLimit(trimmedCode)
+    
+    if (!limitCheck.allowed) {
+      const minutes = Math.ceil((limitCheck.resetTime - Date.now()) / 60000)
+      setErrors({ 
+        submit: `Has alcanzado el límite de envíos. Intenta en ${minutes} minuto(s)` 
+      })
+      logger.warn('Rate limit alcanzado para reseñas', { code: trimmedCode })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       const review = {
-        name: formData.name.trim(),
+        name: SecurityManager.sanitizeInput(formData.name.trim(), 100),
         rating: parseInt(formData.rating),
-        comment: formData.comment.trim(),
-        project: formData.project.trim(),
+        comment: SecurityManager.sanitizeInput(formData.comment.trim(), 1000),
+        project: SecurityManager.sanitizeInput(formData.project.trim(), 200),
         date: new Date().toISOString(),
-        code: code.trim().toUpperCase()
+        code: trimmedCode
       }
 
-      markCodeAsUsed(code.trim().toUpperCase())
+      // Registrar envío reciente
+      const recentReviews = JSON.parse(localStorage.getItem('proconing_recent_submissions') || '[]')
+      recentReviews.push({
+        code: trimmedCode,
+        timestamp: Date.now()
+      })
+      
+      // Mantener solo los últimos 100 envíos recientes
+      if (recentReviews.length > 100) {
+        recentReviews.splice(0, recentReviews.length - 100)
+      }
+      
+      localStorage.setItem('proconing_recent_submissions', JSON.stringify(recentReviews))
+
+      // Incrementar rate limiter
+      reviewRateLimiter.increment(trimmedCode)
+
+      markCodeAsUsed(trimmedCode)
       onSubmit(review)
+      
+      logger.info('Reseña enviada', { code: trimmedCode, rating: review.rating })
     } catch (error) {
-      console.error('Error al enviar reseña:', error)
+      logger.error('Error al enviar reseña', error)
       setErrors({ submit: 'Error al enviar la reseña. Intenta nuevamente.' })
       setIsSubmitting(false)
     }
@@ -335,7 +385,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   className={`w-full px-4 py-3 rounded-xl border ${
                     codeError ? 'border-red-500 bg-red-50' : 'border-line'
                   } focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono transition-colors`}
-                  maxLength={20}
+                  maxLength={50}
                   autoComplete="off"
                   aria-invalid={codeError ? 'true' : 'false'}
                   aria-describedby={codeError ? 'code-error' : 'code-help'}

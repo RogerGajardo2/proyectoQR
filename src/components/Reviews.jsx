@@ -1,97 +1,173 @@
-// src/components/Reviews.jsx
-import { useState, useEffect } from 'react'
+// src/components/Reviews.jsx - VERSIÓN OPTIMIZADA
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import Button from './ui/Button'
 import ReviewModal from './ReviewModal'
+import { logger } from '../utils/logger'
+
+// ==================== COMPONENTES MEMOIZADOS ====================
+
+const StarRating = memo(({ rating, size = 'md' }) => {
+  const sizes = {
+    sm: 'w-4 h-4',
+    md: 'w-5 h-5',
+    lg: 'w-6 h-6',
+    xl: 'w-8 h-8'
+  }
+
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <svg
+          key={star}
+          className={`${sizes[size]} ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </div>
+  )
+}, (prevProps, nextProps) => {
+  return prevProps.rating === nextProps.rating && prevProps.size === nextProps.size
+})
+
+StarRating.displayName = 'StarRating'
+
+const DistributionBar = memo(({ stars, count, total }) => {
+  const percentage = total > 0 ? (count / total) * 100 : 0
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-gray-600 w-12">{stars} ★</span>
+      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-yellow-400 transition-all duration-500"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      <span className="text-sm text-gray-600 w-8 text-right">{count}</span>
+    </div>
+  )
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.count === nextProps.count &&
+    prevProps.total === nextProps.total
+  )
+})
+
+DistributionBar.displayName = 'DistributionBar'
+
+const ReviewCard = memo(({ review, index }) => (
+  <div
+    className="bg-white border border-line rounded-2xl p-6 shadow-soft hover:shadow-lg transition-shadow"
+    data-reveal
+  >
+    <div className="flex items-start justify-between mb-3">
+      <div className="flex-1">
+        <h4 className="font-bold text-title">{review.name}</h4>
+        <p className="text-sm text-gray-500">
+          {new Date(review.date).toLocaleDateString('es-CL', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}
+        </p>
+      </div>
+      <StarRating rating={review.rating} size="sm" />
+    </div>
+
+    <p className="text-text leading-relaxed">
+      {review.comment}
+    </p>
+
+    {review.project && (
+      <div className="mt-3 pt-3 border-t border-gray-100">
+        <span className="text-xs text-gray-500">
+          Proyecto: <span className="font-semibold">{review.project}</span>
+        </span>
+      </div>
+    )}
+  </div>
+), (prevProps, nextProps) => {
+  return (
+    prevProps.review.code === nextProps.review.code &&
+    prevProps.review.rating === nextProps.review.rating
+  )
+})
+
+ReviewCard.displayName = 'ReviewCard'
+
+// ==================== COMPONENTE PRINCIPAL ====================
 
 export default function Reviews() {
   const [reviews, setReviews] = useState([])
   const [showModal, setShowModal] = useState(false)
-  const [stats, setStats] = useState({
-    average: 0,
-    total: 0,
-    distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
-  })
+  const [visibleCount, setVisibleCount] = useState(9) // Paginación inicial
 
   // Cargar reseñas desde localStorage al montar
   useEffect(() => {
-    const savedReviews = localStorage.getItem('proconing_reviews')
-    if (savedReviews) {
-      const parsedReviews = JSON.parse(savedReviews)
-      setReviews(parsedReviews)
-      calculateStats(parsedReviews)
+    try {
+      const savedReviews = localStorage.getItem('proconing_reviews')
+      if (savedReviews) {
+        const parsedReviews = JSON.parse(savedReviews)
+        setReviews(parsedReviews)
+        logger.info('Reseñas cargadas', { count: parsedReviews.length })
+      }
+    } catch (error) {
+      logger.error('Error cargando reseñas', error)
     }
   }, [])
 
-  // Calcular estadísticas
-  const calculateStats = (reviewsList) => {
-    if (reviewsList.length === 0) {
-      setStats({ average: 0, total: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } })
-      return
+  // Calcular estadísticas memoizadas
+  const stats = useMemo(() => {
+    if (reviews.length === 0) {
+      return { 
+        average: 0, 
+        total: 0, 
+        distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } 
+      }
     }
 
-    const total = reviewsList.length
-    const sum = reviewsList.reduce((acc, review) => acc + review.rating, 0)
+    const total = reviews.length
+    const sum = reviews.reduce((acc, review) => acc + review.rating, 0)
     const average = sum / total
 
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
-    reviewsList.forEach(review => {
+    reviews.forEach(review => {
       distribution[review.rating]++
     })
 
-    setStats({ average, total, distribution })
-  }
+    return { average, total, distribution }
+  }, [reviews])
+
+  // Reseñas visibles con paginación
+  const visibleReviews = useMemo(() => {
+    return reviews.slice(0, visibleCount)
+  }, [reviews, visibleCount])
+
+  const hasMore = reviews.length > visibleCount
 
   // Manejar nueva reseña
-  const handleNewReview = (newReview) => {
-    const updatedReviews = [...reviews, newReview]
-    setReviews(updatedReviews)
-    localStorage.setItem('proconing_reviews', JSON.stringify(updatedReviews))
-    calculateStats(updatedReviews)
-    setShowModal(false)
-  }
-
-  // Renderizar estrellas
-  const StarRating = ({ rating, size = 'md' }) => {
-    const sizes = {
-      sm: 'w-4 h-4',
-      md: 'w-5 h-5',
-      lg: 'w-6 h-6',
-      xl: 'w-8 h-8'
+  const handleNewReview = useCallback((newReview) => {
+    try {
+      const updatedReviews = [...reviews, newReview]
+      setReviews(updatedReviews)
+      localStorage.setItem('proconing_reviews', JSON.stringify(updatedReviews))
+      setShowModal(false)
+      logger.info('Nueva reseña agregada', { 
+        code: newReview.code, 
+        rating: newReview.rating 
+      })
+    } catch (error) {
+      logger.error('Error agregando reseña', error)
     }
+  }, [reviews])
 
-    return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <svg
-            key={star}
-            className={`${sizes[size]} ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-        ))}
-      </div>
-    )
-  }
-
-  // Barra de distribución
-  const DistributionBar = ({ stars, count, total }) => {
-    const percentage = total > 0 ? (count / total) * 100 : 0
-
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-600 w-12">{stars} ★</span>
-        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-yellow-400 transition-all duration-500"
-            style={{ width: `${percentage}%` }}
-          />
-        </div>
-        <span className="text-sm text-gray-600 w-8 text-right">{count}</span>
-      </div>
-    )
-  }
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount(prev => Math.min(prev + 9, reviews.length))
+    logger.info('Cargando más reseñas', { visibleCount: visibleCount + 9 })
+  }, [reviews.length, visibleCount])
 
   return (
     <section id="resenas" className="py-16 scroll-mt-24 bg-white">
@@ -154,43 +230,28 @@ export default function Reviews() {
           </div>
         )}
 
-        {/* Lista de reseñas */}
-        {reviews.length > 0 && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {reviews.map((review, index) => (
-              <div
-                key={index}
-                className="bg-white border border-line rounded-2xl p-6 shadow-soft hover:shadow-lg transition-shadow"
-                data-reveal
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h4 className="font-bold text-title">{review.name}</h4>
-                    <p className="text-sm text-gray-500">
-                      {new Date(review.date).toLocaleDateString('es-CL', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                  <StarRating rating={review.rating} size="sm" />
-                </div>
+        {/* Lista de reseñas con paginación */}
+        {visibleReviews.length > 0 && (
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {visibleReviews.map((review, index) => (
+                <ReviewCard
+                  key={`${review.code}-${index}`}
+                  review={review}
+                  index={index}
+                />
+              ))}
+            </div>
 
-                <p className="text-text leading-relaxed">
-                  {review.comment}
-                </p>
-
-                {review.project && (
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <span className="text-xs text-gray-500">
-                      Proyecto: <span className="font-semibold">{review.project}</span>
-                    </span>
-                  </div>
-                )}
+            {/* Botón cargar más */}
+            {hasMore && (
+              <div className="text-center" data-reveal>
+                <Button onClick={handleLoadMore} variant="outline">
+                  Cargar más reseñas ({reviews.length - visibleCount} restantes)
+                </Button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 

@@ -1,15 +1,42 @@
-// src/components/Contact.jsx (CON VALIDACIONES MEJORADAS)
+// src/components/Contact.jsx - VERSIÓN MEJORADA CON VALIDACIONES Y SEGURIDAD
 import { useState } from 'react'
 import Button from './ui/Button'
+import { SecurityManager, formRateLimiter } from '../utils/security'
+import { logger } from '../utils/logger'
 
 export default function Contact(){
   const [status, setStatus] = useState({ type: 'idle', msg: '' })
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
+  const [csrfToken] = useState(() => SecurityManager.generateCSRFToken())
+
+  // Almacenar token en sessionStorage al montar
+  useState(() => {
+    sessionStorage.setItem('csrf_token', csrfToken)
+  })
 
   // Función para validar el formulario en tiempo real
   function validateField(name, value) {
     let error = ''
+    
+    // Detectar scripts maliciosos
+    const dangerousPatterns = [
+      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+      /javascript:/gi,
+      /on\w+\s*=/gi,
+      /<iframe/gi,
+      /<object/gi,
+      /<embed/gi
+    ]
+    
+    if (dangerousPatterns.some(pattern => pattern.test(value))) {
+      return 'Contenido no permitido detectado'
+    }
+
+    // Detectar spam
+    if (SecurityManager.detectSpam(value)) {
+      return 'Contenido sospechoso detectado'
+    }
     
     switch(name) {
       case 'name':
@@ -27,33 +54,15 @@ export default function Contact(){
       case 'email':
         if (!value.trim()) {
           error = 'El correo electrónico es obligatorio'
-        } else {
-          // Validación mejorada de email
-          const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
-          if (!emailRegex.test(value.trim())) {
-            error = 'Ingresa un correo electrónico válido'
-          } else if (value.trim().length > 100) {
-            error = 'El correo no puede exceder 100 caracteres'
-          }
+        } else if (!SecurityManager.validateEmail(value)) {
+          error = 'Ingresa un correo electrónico válido'
         }
         break
 
       case 'phone':
         if (value.trim()) {
-          // Si se proporciona teléfono, validarlo
-          const phoneClean = value.trim().replace(/\s/g, '')
-          
-          if (!phoneClean.startsWith('+56')) {
-            error = 'El teléfono debe comenzar con +56'
-          } else if (phoneClean.length < 11 || phoneClean.length > 13) {
-            error = 'El teléfono debe tener entre 11 y 13 dígitos (ej: +56912345678)'
-          } else {
-            const numbersOnly = phoneClean.slice(3)
-            if (!/^\d+$/.test(numbersOnly)) {
-              error = 'El teléfono solo debe contener números después de +56'
-            } else if (!['9', '2'].includes(numbersOnly[0])) {
-              error = 'El teléfono debe empezar con 9 (móvil) o 2 (fijo) después de +56'
-            }
+          if (!SecurityManager.validateChileanPhone(value)) {
+            error = 'Formato de teléfono chileno inválido (ej: +56912345678)'
           }
         }
         break
@@ -65,17 +74,6 @@ export default function Contact(){
           error = 'El mensaje debe tener al menos 10 caracteres'
         } else if (value.trim().length > 800) {
           error = 'El mensaje no puede exceder 800 caracteres'
-        } else {
-          // Detectar spam o contenido sospechoso
-          const spamPatterns = [
-            /viagra|cialis|casino|lottery|winner/i,
-            /(https?:\/\/[^\s]+){3,}/g, // Múltiples URLs
-            /([A-Z]{10,})/g, // Muchas mayúsculas seguidas
-          ]
-          
-          if (spamPatterns.some(pattern => pattern.test(value))) {
-            error = 'El mensaje contiene contenido no permitido'
-          }
         }
         break
     }
@@ -129,10 +127,26 @@ export default function Contact(){
     const form = e.currentTarget
     const fd = new FormData(form)
     
-    // Verificación anti-bot
+    // Verificación anti-bot (campo oculto)
     if (fd.get('botcheck')){ 
       setStatus({ type: 'error', msg: 'Error: validación anti-bot.' })
+      logger.warn('Intento de bot detectado', { botcheck: fd.get('botcheck') })
       return 
+    }
+
+    // Verificación honeypot adicional
+    if (fd.get('website')) {
+      setStatus({ type: 'error', msg: 'Spam detectado' })
+      logger.warn('Honeypot activado', { website: fd.get('website') })
+      return
+    }
+
+    // Verificar CSRF token
+    const submittedToken = fd.get('csrf_token')
+    if (!SecurityManager.validateCSRFToken(submittedToken)) {
+      setStatus({ type: 'error', msg: 'Token de seguridad inválido. Recarga la página.' })
+      logger.error('CSRF token inválido', { submitted: submittedToken })
+      return
     }
 
     // Validar formulario completo
@@ -150,7 +164,6 @@ export default function Contact(){
     // Si hay errores, no continuar
     if (Object.keys(validationErrors).length > 0) {
       setStatus({ type: 'error', msg: 'Por favor corrige los errores del formulario' })
-      // Hacer scroll al primer error
       const firstErrorField = Object.keys(validationErrors)[0]
       const element = document.getElementById(firstErrorField)
       if (element) {
@@ -160,20 +173,39 @@ export default function Contact(){
       return
     }
 
-    const nombre = (fd.get('name')||'').toString().trim()
-    const email = (fd.get('email')||'').toString().trim()
-    const phone = (fd.get('phone')||'').toString().trim()
-    const message = (fd.get('message')||'').toString().trim()
+    // Verificar rate limiting
+    const email = (fd.get('email') || '').toString().trim()
+    const limitCheck = formRateLimiter.checkLimit(email)
+    
+    if (!limitCheck.allowed) {
+      const minutes = Math.ceil((limitCheck.resetTime - Date.now()) / 60000)
+      setStatus({ 
+        type: 'error', 
+        msg: `Has alcanzado el límite de envíos. Intenta en ${minutes} minuto(s)` 
+      })
+      logger.warn('Rate limit alcanzado para formulario', { email })
+      return
+    }
+
+    const nombre = SecurityManager.sanitizeInput((fd.get('name')||'').toString().trim(), 50)
+    const emailSanitized = SecurityManager.sanitizeInput(email, 100)
+    const phone = SecurityManager.sanitizeInput((fd.get('phone')||'').toString().trim(), 20)
+    const message = SecurityManager.sanitizeInput((fd.get('message')||'').toString().trim(), 800)
 
     setStatus({ type: 'loading', msg: 'Enviando…' })
     
     try{
       const ACCESS_KEY = import.meta.env.VITE_WEB3FORMS_KEY || 'YOUR_ACCESS_KEY_HERE'
+      
+      if (ACCESS_KEY === 'YOUR_ACCESS_KEY_HERE') {
+        throw new Error('Clave de API no configurada')
+      }
+
       const payload = { 
         access_key: ACCESS_KEY, 
         subject: 'Nueva consulta — ProconIng', 
         from_name: nombre, 
-        from_email: email, 
+        from_email: emailSanitized, 
         phone: phone || 'No proporcionado', 
         message 
       }
@@ -187,13 +219,25 @@ export default function Contact(){
         body: JSON.stringify(payload) 
       })
       
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
+
       const result = await res.json()
       
       if (result.success){ 
-        setStatus({ type: 'ok', msg: '¡Mensaje enviado exitosamente! Te responderemos a la brevedad.' })
+        setStatus({ 
+          type: 'ok', 
+          msg: '¡Mensaje enviado exitosamente! Te responderemos a la brevedad.' 
+        })
         setErrors({})
         setTouched({})
-        form.reset() 
+        form.reset()
+        
+        // Incrementar contador de rate limiting
+        formRateLimiter.increment(email)
+        
+        logger.info('Formulario de contacto enviado', { email: emailSanitized })
         
         // Scroll al mensaje de éxito
         setTimeout(() => {
@@ -206,7 +250,7 @@ export default function Contact(){
         throw new Error(result.message || 'No se pudo enviar el formulario.') 
       }
     } catch (err){ 
-      console.error(err)
+      logger.error('Error al enviar formulario de contacto', err)
       setStatus({ 
         type: 'error', 
         msg: 'Hubo un problema al enviar. Intenta nuevamente o escríbenos directamente a contacto@proconing.cl' 
@@ -228,7 +272,27 @@ export default function Contact(){
         <div className="grid grid-cols-1 gap-6">
           <div className="bg-white border border-line rounded-2xl p-5 shadow-soft" data-reveal>
             <form onSubmit={onSubmit} className="grid gap-3" autoComplete="on" noValidate>
-              <input type="text" name="botcheck" className="sr-only" tabIndex="-1" aria-hidden="true" />
+              {/* Campo anti-bot oculto */}
+              <input 
+                type="text" 
+                name="botcheck" 
+                className="sr-only" 
+                tabIndex="-1" 
+                aria-hidden="true" 
+              />
+              
+              {/* Honeypot adicional */}
+              <input 
+                type="text" 
+                name="website" 
+                tabIndex="-1" 
+                autoComplete="off"
+                style={{ position: 'absolute', left: '-9999px' }}
+                aria-hidden="true"
+              />
+
+              {/* CSRF Token */}
+              <input type="hidden" name="csrf_token" value={csrfToken} />
               
               {/* Campo Nombre */}
               <div>
@@ -416,7 +480,7 @@ export default function Contact(){
                 <span className="text-2xl">📧</span>
                 <div>
                   <p className="text-xs text-gray-500">Email</p>
-                  <a className="text-subtitle font-semibold">
+                  <a  className="text-subtitle font-semibold ">
                     contacto@proconing.cl
                   </a>
                 </div>
@@ -425,7 +489,7 @@ export default function Contact(){
                 <span className="text-2xl">📱</span>
                 <div>
                   <p className="text-xs text-gray-500">Teléfono</p>
-                  <a className="text-subtitle font-semibold">
+                  <a className="text-subtitle font-semibold ">
                     +569 7349 5086
                   </a>
                 </div>
