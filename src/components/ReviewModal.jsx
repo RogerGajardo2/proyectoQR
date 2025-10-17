@@ -1,4 +1,4 @@
-// src/components/ReviewModal.jsx - VERSIÓN CORREGIDA CON CARGA DE CÓDIGOS
+// src/components/ReviewModal.jsx - VERSIÓN SEGURA SIN MOSTRAR INFO DE CÓDIGOS
 import { useState, useEffect } from 'react'
 import { useCodes } from '../contexts/CodeContext'
 import Button from './ui/Button'
@@ -20,16 +20,15 @@ export default function ReviewModal({ onClose, onSubmit }) {
   const [hoveredStar, setHoveredStar] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  // ✅ CORRECCIÓN: Usar CodeContext y cargar códigos
+  // ✅ Cargar códigos silenciosamente en background
   const { availableCodes, loading: codesLoading, loadCodes, initialized } = useCodes()
 
-  // ✅ NUEVO: Cargar códigos al montar el componente
+  // ✅ Cargar códigos al montar (sin mostrar estado al usuario)
   useEffect(() => {
     if (!initialized) {
-      logger.info('Cargando códigos disponibles para modal...')
       loadCodes().catch(err => {
         logger.error('Error cargando códigos en modal', err)
-        setCodeError('Error cargando códigos. Intenta recargar.')
+        // NO mostrar error al usuario, solo loggear
       })
     }
   }, [initialized, loadCodes])
@@ -119,38 +118,29 @@ export default function ReviewModal({ onClose, onSubmit }) {
       return
     }
 
-    // ✅ CORRECCIÓN: Validar contra availableCodes de Firestore
-    if (codesLoading) {
-      setCodeError('Cargando códigos... intenta nuevamente')
+    // ✅ VALIDAR código sin mostrar información sobre disponibilidad
+    // Esperar a que los códigos estén cargados
+    if (codesLoading || !initialized) {
+      setCodeError('Validando código... intenta nuevamente')
       return
     }
 
-    if (!availableCodes || availableCodes.length === 0) {
-      setCodeError('No hay códigos disponibles. Contacta al administrador.')
-      logger.warn('No hay códigos disponibles en Firestore')
-      return
-    }
-
-    logger.info('Validando código', { 
-      trimmedCode, 
-      availableCodesCount: availableCodes.length,
-      availableCodes: availableCodes.map(c => c.code)
-    })
-
-    const isValid = availableCodes.some(c => c.code === trimmedCode)
+    // Validar contra códigos disponibles (sin revelar cantidad)
+    const isValid = availableCodes && availableCodes.some(c => c.code === trimmedCode)
     
     if (!isValid) {
+      // ✅ Mensaje de error genérico - no revela información
       setCodeError('Código inválido o ya usado')
-      logger.warn('Código inválido', { 
-        code: trimmedCode,
-        availableCodes: availableCodes.map(c => c.code)
+      logger.warn('Código inválido ingresado', { 
+        code: trimmedCode.substring(0, 4) + '***' // Log parcial por seguridad
       })
       return
     }
 
+    // Código válido - continuar
     setCodeError('')
     setStep(2)
-    logger.info('Código validado exitosamente', { code: trimmedCode })
+    logger.info('Código validado exitosamente')
   }
 
   const validateForm = () => {
@@ -220,7 +210,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
       reviewRateLimiter.increment(trimmedCode)
       onSubmit(review)
       
-      logger.info('Reseña enviada', { code: trimmedCode, rating: review.rating })
+      logger.info('Reseña enviada')
     } catch (error) {
       logger.error('Error al enviar reseña', error)
       setErrors({ submit: 'Error al enviar la reseña. Intenta nuevamente.' })
@@ -290,7 +280,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
         {/* Contenido */}
         <div className="p-4 sm:p-6">
           {step === 1 ? (
-            // Paso 1: Código de acceso
+            // ✅ Paso 1: Código de acceso - SIN mostrar información de disponibilidad
             <form onSubmit={handleCodeSubmit} className="space-y-3 sm:space-y-4">
               <div className="text-center mb-4 sm:mb-6">
                 <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full mb-2 sm:mb-3">
@@ -302,30 +292,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   Necesitas un código único que te fue proporcionado al finalizar tu proyecto.
                 </p>
                 
-                {/* ✅ NUEVO: Mostrar estado de carga de códigos */}
-                {codesLoading ? (
-                  <div className="mt-2 sm:mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-xs sm:text-sm text-blue-700 font-medium flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                      </svg>
-                      Cargando códigos disponibles...
-                    </p>
-                  </div>
-                ) : availableCodes && availableCodes.length > 0 ? (
-                  <div className="mt-2 sm:mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-xs sm:text-sm text-green-700 font-medium">
-                      ✓ {availableCodes.length} código{availableCodes.length !== 1 ? 's' : ''} disponible{availableCodes.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                ) : initialized && !codesLoading ? (
-                  <div className="mt-2 sm:mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-xs sm:text-sm text-yellow-700 font-medium">
-                      ⚠️ No hay códigos disponibles. Contacta al administrador.
-                    </p>
-                  </div>
-                ) : null}
+                {/* ✅ ELIMINADO: Todo el bloque que mostraba estado de carga y disponibilidad de códigos */}
               </div>
 
               <div>
@@ -348,7 +315,6 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   autoComplete="off"
                   aria-invalid={codeError ? 'true' : 'false'}
                   aria-describedby={codeError ? 'code-error' : 'code-help'}
-                  disabled={codesLoading}
                 />
                 {codeError ? (
                   <p id="code-error" className="text-red-500 text-xs sm:text-sm mt-2 flex items-center gap-1">
@@ -367,9 +333,8 @@ export default function ReviewModal({ onClose, onSubmit }) {
               <Button 
                 type="submit" 
                 className="w-full justify-center text-sm sm:text-base py-2.5 sm:py-3"
-                disabled={codesLoading || (initialized && (!availableCodes || availableCodes.length === 0))}
               >
-                {codesLoading ? 'Cargando...' : 'Continuar'}
+                Continuar
               </Button>
 
               <p className="text-xs text-gray-500 text-center">
@@ -377,7 +342,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
               </p>
             </form>
           ) : (
-            // Paso 2: Formulario de reseña (mantener igual que antes)
+            // Paso 2: Formulario de reseña (sin cambios)
             <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               {/* Nombre */}
               <div>
