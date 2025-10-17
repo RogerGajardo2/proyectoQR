@@ -1,11 +1,11 @@
-// src/components/ReviewModal.jsx - VERSIÓN MEJORADA CON SEGURIDAD
+// src/components/ReviewModal.jsx - VERSIÓN OPTIMIZADA Y RESPONSIVA
 import { useState, useEffect } from 'react'
 import Button from './ui/Button'
 import { SecurityManager, reviewRateLimiter } from '../utils/security'
 import { logger } from '../utils/logger'
 
 export default function ReviewModal({ onClose, onSubmit }) {
-  const [step, setStep] = useState(1) // 1: código, 2: formulario
+  const [step, setStep] = useState(1)
   const [code, setCode] = useState('')
   const [codeError, setCodeError] = useState('')
   const [formData, setFormData] = useState({
@@ -20,7 +20,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
   const [validCodes, setValidCodes] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Bloquear scroll del body cuando el modal está abierto
+  // Bloquear scroll del body
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => {
@@ -28,7 +28,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
     }
   }, [])
 
-  // Cargar códigos disponibles desde localStorage
+  // Cargar códigos disponibles
   useEffect(() => {
     const loadAvailableCodes = () => {
       try {
@@ -50,13 +50,12 @@ export default function ReviewModal({ onClose, onSubmit }) {
     loadAvailableCodes()
   }, [])
 
-  // Verificar si el código ya fue usado
+  // Validaciones y funciones auxiliares (sin cambios en la lógica)
   const isCodeUsed = (code) => {
     const usedCodes = JSON.parse(localStorage.getItem('proconing_used_codes') || '[]')
     return usedCodes.includes(code)
   }
 
-  // Marcar código como usado
   const markCodeAsUsed = (code) => {
     const usedCodes = JSON.parse(localStorage.getItem('proconing_used_codes') || '[]')
     usedCodes.push(code)
@@ -64,7 +63,6 @@ export default function ReviewModal({ onClose, onSubmit }) {
     logger.info('Código marcado como usado', { code })
   }
 
-  // Verificar si el código fue usado recientemente
   const wasUsedRecently = (code) => {
     const recentReviews = JSON.parse(localStorage.getItem('proconing_recent_submissions') || '[]')
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000
@@ -75,25 +73,23 @@ export default function ReviewModal({ onClose, onSubmit }) {
     )
   }
 
-  // Validar campo individual
   const validateField = (name, value) => {
     let error = ''
 
-    // Detectar contenido malicioso
     if (SecurityManager.detectSpam(value)) {
       return 'Contenido sospechoso detectado'
     }
 
-    switch (name) {
+    switch(name) {
       case 'name':
         if (!value.trim()) {
           error = 'El nombre es obligatorio'
         } else if (value.trim().length < 2) {
-          error = 'El nombre debe tener al menos 2 caracteres'
+          error = 'Mínimo 2 caracteres'
         } else if (value.trim().length > 50) {
-          error = 'El nombre no puede exceder 50 caracteres'
+          error = 'Máximo 50 caracteres'
         } else if (!/^[a-záéíóúñA-ZÁÉÍÓÚÑ\s]+$/i.test(value.trim())) {
-          error = 'El nombre solo puede contener letras y espacios'
+          error = 'Solo letras y espacios'
         }
         break
 
@@ -101,17 +97,17 @@ export default function ReviewModal({ onClose, onSubmit }) {
         if (!value.trim()) {
           error = 'El comentario es obligatorio'
         } else if (value.trim().length < 10) {
-          error = 'El comentario debe tener al menos 10 caracteres'
+          error = 'Mínimo 10 caracteres'
         } else if (value.trim().length > 500) {
-          error = 'El comentario no puede exceder 500 caracteres'
+          error = 'Máximo 500 caracteres'
         }
         break
 
       case 'project':
         if (value.trim() && value.trim().length > 100) {
-          error = 'El nombre del proyecto no puede exceder 100 caracteres'
+          error = 'Máximo 100 caracteres'
         } else if (value.trim() && !/^[a-zA-Z0-9áéíóúñÁÉÍÓÚÑ\s\-_]+$/i.test(value.trim())) {
-          error = 'El nombre del proyecto contiene caracteres no permitidos'
+          error = 'Caracteres no permitidos'
         }
         break
     }
@@ -119,25 +115,21 @@ export default function ReviewModal({ onClose, onSubmit }) {
     return error
   }
 
-  // Manejar cambio de campo
   const handleFieldChange = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }))
     
-    // Validar en tiempo real si el campo ha sido tocado
     if (touched[name]) {
       const error = validateField(name, value)
       setErrors(prev => ({ ...prev, [name]: error }))
     }
   }
 
-  // Manejar blur
   const handleBlur = (name) => {
     setTouched(prev => ({ ...prev, [name]: true }))
     const error = validateField(name, formData[name])
     setErrors(prev => ({ ...prev, [name]: error }))
   }
 
-  // Validar código
   const handleCodeSubmit = (e) => {
     e.preventDefault()
     const trimmedCode = SecurityManager.sanitizeInput(code.trim().toUpperCase(), 50)
@@ -153,7 +145,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
     }
 
     if (!/^[A-Z0-9]+$/.test(trimmedCode)) {
-      setCodeError('El código solo puede contener letras mayúsculas y números')
+      setCodeError('Solo letras mayúsculas y números')
       return
     }
 
@@ -166,7 +158,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
       } else if (codeExists) {
         setCodeError('Este código no está disponible')
       } else {
-        setCodeError('Código inválido. Verifica que esté escrito correctamente.')
+        setCodeError('Código inválido')
       }
       logger.warn('Intento de código inválido', { code: trimmedCode })
       return
@@ -179,7 +171,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
     }
 
     if (wasUsedRecently(trimmedCode)) {
-      setCodeError('Este código fue usado recientemente. Espera unos minutos.')
+      setCodeError('Código usado recientemente. Espera unos minutos.')
       logger.warn('Código usado recientemente', { code: trimmedCode })
       return
     }
@@ -189,7 +181,6 @@ export default function ReviewModal({ onClose, onSubmit }) {
     logger.info('Código validado', { code: trimmedCode })
   }
 
-  // Validar formulario completo
   const validateForm = () => {
     const newErrors = {}
 
@@ -208,11 +199,9 @@ export default function ReviewModal({ onClose, onSubmit }) {
     return newErrors
   }
 
-  // Enviar reseña
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    // Marcar todos los campos como tocados
     setTouched({
       name: true,
       comment: true,
@@ -232,14 +221,13 @@ export default function ReviewModal({ onClose, onSubmit }) {
       return
     }
 
-    // Verificar rate limiting
     const trimmedCode = code.trim().toUpperCase()
     const limitCheck = reviewRateLimiter.checkLimit(trimmedCode)
     
     if (!limitCheck.allowed) {
       const minutes = Math.ceil((limitCheck.resetTime - Date.now()) / 60000)
       setErrors({ 
-        submit: `Has alcanzado el límite de envíos. Intenta en ${minutes} minuto(s)` 
+        submit: `Límite alcanzado. Intenta en ${minutes} minuto(s)` 
       })
       logger.warn('Rate limit alcanzado para reseñas', { code: trimmedCode })
       return
@@ -257,23 +245,19 @@ export default function ReviewModal({ onClose, onSubmit }) {
         code: trimmedCode
       }
 
-      // Registrar envío reciente
       const recentReviews = JSON.parse(localStorage.getItem('proconing_recent_submissions') || '[]')
       recentReviews.push({
         code: trimmedCode,
         timestamp: Date.now()
       })
       
-      // Mantener solo los últimos 100 envíos recientes
       if (recentReviews.length > 100) {
         recentReviews.splice(0, recentReviews.length - 100)
       }
       
       localStorage.setItem('proconing_recent_submissions', JSON.stringify(recentReviews))
 
-      // Incrementar rate limiter
       reviewRateLimiter.increment(trimmedCode)
-
       markCodeAsUsed(trimmedCode)
       onSubmit(review)
       
@@ -285,10 +269,9 @@ export default function ReviewModal({ onClose, onSubmit }) {
     }
   }
 
-  // Renderizar estrellas interactivas
   const StarInput = () => {
     return (
-      <div className="flex gap-2 justify-center">
+      <div className="flex gap-1 sm:gap-2 justify-center">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
@@ -299,11 +282,11 @@ export default function ReviewModal({ onClose, onSubmit }) {
             }}
             onMouseEnter={() => setHoveredStar(star)}
             onMouseLeave={() => setHoveredStar(0)}
-            className="transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded"
+            className="transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded touch-manipulation"
             aria-label={`${star} estrellas`}
           >
             <svg
-              className={`w-10 h-10 ${
+              className={`w-8 h-8 sm:w-10 sm:h-10 ${
                 star <= (hoveredStar || formData.rating)
                   ? 'text-yellow-400'
                   : 'text-gray-300'
@@ -321,48 +304,47 @@ export default function ReviewModal({ onClose, onSubmit }) {
 
   return (
     <div
-      className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-line px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-          <h3 className="text-xl font-bold text-title">
-            {step === 1 ? 'Ingresa tu código' : 'Comparte tu experiencia'}
+        {/* Header - Responsivo */}
+        <div className="sticky top-0 bg-white border-b border-line px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between rounded-t-xl sm:rounded-t-2xl z-10">
+          <h3 className="text-lg sm:text-xl font-bold text-title truncate pr-2">
+            {step === 1 ? 'Ingresa tu código' : 'Tu experiencia'}
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 p-1 touch-manipulation"
             aria-label="Cerrar"
             disabled={isSubmitting}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Contenido */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {step === 1 ? (
             // Paso 1: Código de acceso
-            <form onSubmit={handleCodeSubmit} className="space-y-4">
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-3">
-                  <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <form onSubmit={handleCodeSubmit} className="space-y-3 sm:space-y-4">
+              <div className="text-center mb-4 sm:mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full mb-2 sm:mb-3">
+                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                   </svg>
                 </div>
-                <p className="text-text">
-                  Para dejar una reseña, necesitas un código de acceso único.
-                  Este código te fue proporcionado al finalizar tu proyecto.
+                <p className="text-text text-sm sm:text-base px-2">
+                  Necesitas un código único que te fue proporcionado al finalizar tu proyecto.
                 </p>
                 {validCodes.length > 0 && (
-                  <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm text-green-700 font-medium">
+                  <div className="mt-2 sm:mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-xs sm:text-sm text-green-700 font-medium">
                       ✓ {validCodes.length} código{validCodes.length !== 1 ? 's' : ''} disponible{validCodes.length !== 1 ? 's' : ''}
                     </p>
                   </div>
@@ -370,7 +352,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
               </div>
 
               <div>
-                <label htmlFor="code" className="block font-semibold text-title mb-2">
+                <label htmlFor="code" className="block font-semibold text-title mb-2 text-sm sm:text-base">
                   Código de acceso <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -382,7 +364,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
                     setCodeError('')
                   }}
                   placeholder="Ej: PROC2024"
-                  className={`w-full px-4 py-3 rounded-xl border ${
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg sm:rounded-xl border ${
                     codeError ? 'border-red-500 bg-red-50' : 'border-line'
                   } focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono transition-colors`}
                   maxLength={50}
@@ -391,8 +373,8 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   aria-describedby={codeError ? 'code-error' : 'code-help'}
                 />
                 {codeError ? (
-                  <p id="code-error" className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <p id="code-error" className="text-red-500 text-xs sm:text-sm mt-2 flex items-center gap-1">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     {codeError}
@@ -404,20 +386,20 @@ export default function ReviewModal({ onClose, onSubmit }) {
                 )}
               </div>
 
-              <Button type="submit" className="w-full justify-center">
+              <Button type="submit" className="w-full justify-center text-sm sm:text-base py-2.5 sm:py-3">
                 Continuar
               </Button>
 
               <p className="text-xs text-gray-500 text-center">
-                ¿No tienes un código? Contáctanos para obtener uno.
+                ¿No tienes un código? Contáctanos.
               </p>
             </form>
           ) : (
             // Paso 2: Formulario de reseña
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               {/* Nombre */}
               <div>
-                <label htmlFor="name" className="block font-semibold text-title mb-2">
+                <label htmlFor="name" className="block font-semibold text-title mb-2 text-sm sm:text-base">
                   Tu nombre <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -427,17 +409,16 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   onChange={(e) => handleFieldChange('name', e.target.value)}
                   onBlur={() => handleBlur('name')}
                   placeholder="Juan Pérez"
-                  className={`w-full px-4 py-3 rounded-xl border ${
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg sm:rounded-xl border ${
                     touched.name && errors.name ? 'border-red-500 bg-red-50' : 'border-line'
                   } focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
                   maxLength={50}
                   disabled={isSubmitting}
                   aria-invalid={touched.name && errors.name ? 'true' : 'false'}
-                  aria-describedby={errors.name ? 'name-error' : undefined}
                 />
                 {touched.name && errors.name && (
-                  <p id="name-error" className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <p className="text-red-500 text-xs sm:text-sm mt-1 flex items-center gap-1">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     {errors.name}
@@ -447,25 +428,22 @@ export default function ReviewModal({ onClose, onSubmit }) {
 
               {/* Rating */}
               <div>
-                <label className="block font-semibold text-title mb-3 text-center">
+                <label className="block font-semibold text-title mb-2 sm:mb-3 text-center text-sm sm:text-base">
                   Calificación <span className="text-red-500">*</span>
                 </label>
                 <StarInput />
-                <p className="text-center text-sm text-gray-500 mt-2">
+                <p className="text-center text-xs sm:text-sm text-gray-500 mt-2">
                   {formData.rating === 5 && '⭐ Excelente'}
                   {formData.rating === 4 && '⭐ Muy bueno'}
                   {formData.rating === 3 && '⭐ Bueno'}
                   {formData.rating === 2 && '⭐ Regular'}
                   {formData.rating === 1 && '⭐ Necesita mejorar'}
                 </p>
-                {touched.rating && errors.rating && (
-                  <p className="text-red-500 text-sm mt-2 text-center">{errors.rating}</p>
-                )}
               </div>
 
               {/* Comentario */}
               <div>
-                <label htmlFor="comment" className="block font-semibold text-title mb-2">
+                <label htmlFor="comment" className="block font-semibold text-title mb-2 text-sm sm:text-base">
                   Tu reseña <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -473,28 +451,25 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   value={formData.comment}
                   onChange={(e) => handleFieldChange('comment', e.target.value)}
                   onBlur={() => handleBlur('comment')}
-                  placeholder="Cuéntanos sobre tu experiencia con ProconIng..."
-                  className={`w-full px-4 py-3 rounded-xl border ${
+                  placeholder="Cuéntanos sobre tu experiencia..."
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg sm:rounded-xl border ${
                     touched.comment && errors.comment ? 'border-red-500 bg-red-50' : 'border-line'
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px] resize-y transition-colors`}
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] sm:min-h-[120px] resize-y transition-colors`}
                   maxLength={500}
                   disabled={isSubmitting}
                   aria-invalid={touched.comment && errors.comment ? 'true' : 'false'}
-                  aria-describedby="comment-help comment-error"
                 />
-                <div className="flex justify-between items-start mt-2">
+                <div className="flex justify-between items-start mt-1">
                   <div className="flex-1">
                     {touched.comment && errors.comment ? (
-                      <p id="comment-error" className="text-red-500 text-sm flex items-center gap-1">
-                        <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <p className="text-red-500 text-xs sm:text-sm flex items-start gap-1">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
-                        {errors.comment}
+                        <span>{errors.comment}</span>
                       </p>
                     ) : (
-                      <p id="comment-help" className="text-xs text-gray-500">
-                        Mínimo 10 caracteres
-                      </p>
+                      <p className="text-xs text-gray-500">Mínimo 10 caracteres</p>
                     )}
                   </div>
                   <p className="text-xs text-gray-500 ml-2 flex-shrink-0">
@@ -505,7 +480,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
 
               {/* Proyecto (opcional) */}
               <div>
-                <label htmlFor="project" className="block font-semibold text-title mb-2">
+                <label htmlFor="project" className="block font-semibold text-title mb-2 text-sm sm:text-base">
                   Proyecto (opcional)
                 </label>
                 <input
@@ -515,32 +490,26 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   onChange={(e) => handleFieldChange('project', e.target.value)}
                   onBlur={() => handleBlur('project')}
                   placeholder="Ej: Casa Moderna 2024"
-                  className={`w-full px-4 py-3 rounded-xl border ${
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg sm:rounded-xl border ${
                     touched.project && errors.project ? 'border-red-500 bg-red-50' : 'border-line'
                   } focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
                   maxLength={100}
                   disabled={isSubmitting}
-                  aria-invalid={touched.project && errors.project ? 'true' : 'false'}
                 />
                 {touched.project && errors.project && (
-                  <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    {errors.project}
-                  </p>
+                  <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.project}</p>
                 )}
               </div>
 
-              {/* Error general de envío */}
+              {/* Error de envío */}
               {errors.submit && (
                 <div className="p-3 bg-red-100 border border-red-300 rounded-lg">
-                  <p className="text-red-700 text-sm">{errors.submit}</p>
+                  <p className="text-red-700 text-xs sm:text-sm">{errors.submit}</p>
                 </div>
               )}
 
               {/* Botones */}
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
                 <Button
                   type="button"
                   variant="ghost"
@@ -549,25 +518,31 @@ export default function ReviewModal({ onClose, onSubmit }) {
                     setTouched({})
                     setErrors({})
                   }}
-                  className="flex-1 justify-center"
+                  className="w-full sm:flex-1 justify-center text-sm sm:text-base py-2.5 sm:py-3"
                   disabled={isSubmitting}
                 >
                   Volver
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 justify-center"
+                  className="w-full sm:flex-1 justify-center text-sm sm:text-base py-2.5 sm:py-3"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                       </svg>
-                      Publicando...
+                      <span className="hidden sm:inline">Publicando...</span>
+                      <span className="sm:hidden">...</span>
                     </span>
-                  ) : 'Publicar reseña'}
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">Publicar reseña</span>
+                      <span className="sm:hidden">Publicar</span>
+                    </>
+                  )}
                 </Button>
               </div>
             </form>
