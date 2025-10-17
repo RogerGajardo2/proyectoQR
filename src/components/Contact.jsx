@@ -1,8 +1,11 @@
-// src/components/Contact.jsx - CON HCAPTCHA (Web3Forms nativo)
+// src/components/Contact.jsx - CON HCAPTCHA COMPLETO
 import { useState, useEffect, useRef } from 'react'
 import Button from './ui/Button'
 import { SecurityManager, formRateLimiter } from '../utils/security'
 import { logger } from '../utils/logger'
+
+// ✅ SITEKEY CORRECTA DE HCAPTCHA
+const HCAPTCHA_SITEKEY = 'c1badf3e-d56c-4d60-b8be-df20408cdccc'
 
 export default function Contact(){
   const [status, setStatus] = useState({ type: 'idle', msg: '' })
@@ -24,10 +27,10 @@ export default function Contact(){
       if (window.hcaptcha && hcaptchaRef.current && !widgetIdRef.current) {
         try {
           widgetIdRef.current = window.hcaptcha.render(hcaptchaRef.current, {
-            sitekey: '50b2fe65-b00b-4b9e-ad62-3ba471098be2', // Sitekey de prueba de hCaptcha
+            sitekey: HCAPTCHA_SITEKEY,
             callback: (token) => {
               setHcaptchaToken(token)
-              logger.info('hCaptcha token recibido')
+              logger.info('hCaptcha token recibido para formulario de contacto')
             },
             'error-callback': () => {
               setHcaptchaToken(null)
@@ -41,7 +44,7 @@ export default function Contact(){
             size: 'normal'
           })
           setHcaptchaLoaded(true)
-          logger.info('hCaptcha inicializado')
+          logger.info('hCaptcha inicializado correctamente')
         } catch (error) {
           logger.error('Error inicializando hCaptcha', error)
         }
@@ -61,9 +64,15 @@ export default function Contact(){
       }, 100)
 
       // Timeout después de 10 segundos
-      setTimeout(() => clearInterval(checkHcaptcha), 10000)
+      const timeout = setTimeout(() => {
+        clearInterval(checkHcaptcha)
+        logger.error('Timeout: hCaptcha no se cargó a tiempo')
+      }, 10000)
 
-      return () => clearInterval(checkHcaptcha)
+      return () => {
+        clearInterval(checkHcaptcha)
+        clearTimeout(timeout)
+      }
     }
   }, [])
 
@@ -513,7 +522,7 @@ export default function Contact(){
                 <div 
                   ref={hcaptchaRef}
                   className="h-captcha"
-                  data-sitekey="c1badf3e-d56c-4d60-b8be-df20408cdccc"
+                  data-sitekey={HCAPTCHA_SITEKEY}
                 />
                 {!hcaptchaLoaded && (
                   <p className="text-xs text-gray-500">
@@ -594,7 +603,6 @@ export default function Contact(){
                 </div>
               </div>
             </div>
-          
           </aside>
         </div>
       </div>

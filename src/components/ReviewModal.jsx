@@ -1,9 +1,12 @@
-// src/components/ReviewModal.jsx - VERSIÓN CORREGIDA CON CARGA DE CÓDIGOS
-import { useState, useEffect } from 'react'
+// src/components/ReviewModal.jsx - CON HCAPTCHA COMPLETO
+import { useState, useEffect, useRef } from 'react'
 import { useCodes } from '../contexts/CodeContext'
 import Button from './ui/Button'
 import { SecurityManager, reviewRateLimiter } from '../utils/security'
 import { logger } from '../utils/logger'
+
+// ✅ SITEKEY CORRECTA DE HCAPTCHA
+const HCAPTCHA_SITEKEY = 'c1badf3e-d56c-4d60-b8be-df20408cdccc'
 
 export default function ReviewModal({ onClose, onSubmit }) {
   const [step, setStep] = useState(1)
@@ -19,11 +22,15 @@ export default function ReviewModal({ onClose, onSubmit }) {
   const [touched, setTouched] = useState({})
   const [hoveredStar, setHoveredStar] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [hcaptchaToken, setHcaptchaToken] = useState(null)
+  const [hcaptchaLoaded, setHcaptchaLoaded] = useState(false)
+  const hcaptchaRef = useRef(null)
+  const widgetIdRef = useRef(null)
   
-  // ✅ CORRECCIÓN: Usar CodeContext y cargar códigos
+  // ✅ Usar CodeContext y cargar códigos
   const { availableCodes, loading: codesLoading, loadCodes, initialized } = useCodes()
 
-  // ✅ NUEVO: Cargar códigos al montar el componente
+  // ✅ Cargar códigos al montar el componente
   useEffect(() => {
     if (!initialized) {
       logger.info('Cargando códigos disponibles para modal...')
@@ -39,6 +46,76 @@ export default function ReviewModal({ onClose, onSubmit }) {
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = 'auto'
+    }
+  }, [])
+
+  // ✅ Inicializar hCaptcha en el paso 2
+  useEffect(() => {
+    if (step !== 2) return
+
+    const initHcaptcha = () => {
+      if (window.hcaptcha && hcaptchaRef.current && !widgetIdRef.current) {
+        try {
+          widgetIdRef.current = window.hcaptcha.render(hcaptchaRef.current, {
+            sitekey: HCAPTCHA_SITEKEY,
+            callback: (token) => {
+              setHcaptchaToken(token)
+              logger.info('hCaptcha token recibido para reseña')
+            },
+            'error-callback': () => {
+              setHcaptchaToken(null)
+              logger.error('Error en hCaptcha')
+            },
+            'expired-callback': () => {
+              setHcaptchaToken(null)
+              logger.warn('hCaptcha token expirado')
+            },
+            theme: 'light',
+            size: 'normal'
+          })
+          setHcaptchaLoaded(true)
+          logger.info('hCaptcha inicializado en modal de reseñas')
+        } catch (error) {
+          logger.error('Error inicializando hCaptcha en modal', error)
+        }
+      }
+    }
+
+    // Verificar si hCaptcha ya está cargado
+    if (window.hcaptcha) {
+      initHcaptcha()
+    } else {
+      // Esperar a que se cargue el script
+      const checkHcaptcha = setInterval(() => {
+        if (window.hcaptcha) {
+          clearInterval(checkHcaptcha)
+          initHcaptcha()
+        }
+      }, 100)
+
+      // Timeout después de 10 segundos
+      const timeout = setTimeout(() => {
+        clearInterval(checkHcaptcha)
+        logger.error('Timeout: hCaptcha no se cargó a tiempo en modal')
+      }, 10000)
+
+      return () => {
+        clearInterval(checkHcaptcha)
+        clearTimeout(timeout)
+      }
+    }
+  }, [step])
+
+  // ✅ Resetear hCaptcha cuando se cierra el modal o se vuelve al paso 1
+  useEffect(() => {
+    return () => {
+      if (window.hcaptcha && widgetIdRef.current !== null) {
+        try {
+          window.hcaptcha.reset(widgetIdRef.current)
+        } catch (error) {
+          logger.debug('Error reseteando hCaptcha al desmontar', error)
+        }
+      }
     }
   }, [])
 
@@ -119,7 +196,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
       return
     }
 
-    // ✅ CORRECCIÓN: Validar contra availableCodes de Firestore
+    // ✅ Validar contra availableCodes de Firestore
     if (codesLoading) {
       setCodeError('Cargando códigos... intenta nuevamente')
       return
@@ -193,6 +270,13 @@ export default function ReviewModal({ onClose, onSubmit }) {
       return
     }
 
+    // ✅ Verificar hCaptcha
+    if (!hcaptchaToken) {
+      setErrors({ submit: 'Por favor completa la verificación de seguridad (hCaptcha)' })
+      logger.warn('Intento de envío de reseña sin token de hCaptcha')
+      return
+    }
+
     const trimmedCode = code.trim().toUpperCase()
     const limitCheck = reviewRateLimiter.checkLimit(trimmedCode)
     
@@ -214,7 +298,9 @@ export default function ReviewModal({ onClose, onSubmit }) {
         comment: SecurityManager.sanitizeInput(formData.comment.trim(), 1000),
         project: SecurityManager.sanitizeInput(formData.project.trim(), 200),
         date: new Date().toISOString(),
-        code: trimmedCode
+        code: trimmedCode,
+        // ✅ Incluir token de hCaptcha (aunque no se envía a Firestore, se valida en el frontend)
+        hcaptchaToken: hcaptchaToken
       }
 
       reviewRateLimiter.increment(trimmedCode)
@@ -302,7 +388,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   Necesitas un código único que te fue proporcionado al finalizar tu proyecto.
                 </p>
                 
-                {/* ✅ NUEVO: Mostrar estado de carga de códigos */}
+                {/* ✅ Mostrar estado de carga de códigos */}
                 {codesLoading ? (
                   <div className="mt-2 sm:mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-xs sm:text-sm text-blue-700 font-medium flex items-center justify-center gap-2">
@@ -377,7 +463,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
               </p>
             </form>
           ) : (
-            // Paso 2: Formulario de reseña (mantener igual que antes)
+            // Paso 2: Formulario de reseña
             <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               {/* Nombre */}
               <div>
@@ -483,6 +569,25 @@ export default function ReviewModal({ onClose, onSubmit }) {
                 )}
               </div>
 
+              {/* ✅ Widget de hCaptcha */}
+              <div className="flex flex-col items-center gap-2 py-3">
+                <div 
+                  ref={hcaptchaRef}
+                  className="h-captcha"
+                  data-sitekey={HCAPTCHA_SITEKEY}
+                />
+                {!hcaptchaLoaded && (
+                  <p className="text-xs text-gray-500">
+                    Cargando verificación de seguridad...
+                  </p>
+                )}
+                {hcaptchaLoaded && !hcaptchaToken && (
+                  <p className="text-xs text-blue-600">
+                    ✓ Por favor completa la verificación de seguridad
+                  </p>
+                )}
+              </div>
+
               {/* Error de envío */}
               {errors.submit && (
                 <div className="p-3 bg-red-100 border border-red-300 rounded-lg">
@@ -499,6 +604,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
                     setStep(1)
                     setTouched({})
                     setErrors({})
+                    setHcaptchaToken(null)
                   }}
                   className="w-full sm:flex-1 justify-center text-sm sm:text-base py-2.5 sm:py-3"
                   disabled={isSubmitting}
@@ -508,7 +614,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
                 <Button
                   type="submit"
                   className="w-full sm:flex-1 justify-center text-sm sm:text-base py-2.5 sm:py-3"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !hcaptchaToken}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">
