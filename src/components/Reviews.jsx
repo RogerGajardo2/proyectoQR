@@ -1,12 +1,13 @@
-// src/components/Reviews.jsx - VERSIÓN OPTIMIZADA CON MEJOR RESPONSIVIDAD
-import { useState, useMemo, useCallback, memo, useEffect } from 'react'
+// src/components/Reviews.jsx - VERSIÓN CORREGIDA SIN useCodes
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useReviews } from '../contexts/ReviewContext'
+import { CodeProvider } from '../contexts/CodeContext'
 import Button from './ui/Button'
 import ReviewModal from './ReviewModal'
 import { logger } from '../utils/logger'
 
 // StarRating - Optimizado con mejor responsividad
-const StarRating = memo(({ rating, size = 'md' }) => {
+const StarRating = ({ rating, size = 'md' }) => {
   const sizes = {
     sm: 'w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4',
     md: 'w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5',
@@ -28,12 +29,10 @@ const StarRating = memo(({ rating, size = 'md' }) => {
       ))}
     </div>
   )
-})
-
-StarRating.displayName = 'StarRating'
+}
 
 // Barra de distribución - Optimizada
-const DistributionBar = memo(({ stars, count, total }) => {
+const DistributionBar = ({ stars, count, total }) => {
   const percentage = total > 0 ? (count / total) * 100 : 0
 
   return (
@@ -48,12 +47,10 @@ const DistributionBar = memo(({ stars, count, total }) => {
       <span className="text-xs sm:text-sm text-gray-600 w-6 sm:w-8 text-right flex-shrink-0">{count}</span>
     </div>
   )
-})
-
-DistributionBar.displayName = 'DistributionBar'
+}
 
 // Card de reseña - Optimizada con mejor responsive
-const ReviewCard = memo(({ review }) => (
+const ReviewCard = ({ review }) => (
   <div
     className="bg-white border border-line rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-soft hover:shadow-lg transition-all duration-300"
     data-reveal
@@ -86,9 +83,7 @@ const ReviewCard = memo(({ review }) => (
       </div>
     )}
   </div>
-))
-
-ReviewCard.displayName = 'ReviewCard'
+)
 
 export default function Reviews() {
   const { 
@@ -100,9 +95,6 @@ export default function Reviews() {
     loadReviews,
     addReview 
   } = useReviews()
-
-  // Cargar códigos disponibles
-  const { loadCodes, initialized: codesInitialized } = useCodes()
 
   const [showModal, setShowModal] = useState(false)
   const [visibleCount, setVisibleCount] = useState(9)
@@ -116,17 +108,6 @@ export default function Reviews() {
       })
     }
   }, [initialized, loadReviews])
-
-  // Cargar códigos disponibles
-  useEffect(() => {
-    if (!codesInitialized) {
-      logger.info('Cargando códigos disponibles...')
-      loadCodes().catch(err => {
-        logger.error('Error cargando códigos', err)
-      })
-    }
-  }, [codesInitialized, loadCodes])
-
   
   // Reseñas visibles con paginación
   const visibleReviews = useMemo(() => {
@@ -134,6 +115,12 @@ export default function Reviews() {
   }, [reviews, visibleCount])
 
   const hasMore = reviews.length > visibleCount
+
+  // Calcular reseñas recientes (últimos 30 días)
+  const recentReviews = useMemo(() => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+    return reviews.filter(r => new Date(r.date).getTime() > thirtyDaysAgo).length
+  }, [reviews])
 
   // Manejar nueva reseña
   const handleNewReview = useCallback(async (newReview) => {
@@ -280,12 +267,14 @@ export default function Reviews() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Modal con CodeProvider - ✅ AQUÍ está el CodeProvider */}
       {showModal && (
-        <ReviewModal
-          onClose={() => setShowModal(false)}
-          onSubmit={handleNewReview}
-        />
+        <CodeProvider>
+          <ReviewModal
+            onClose={() => setShowModal(false)}
+            onSubmit={handleNewReview}
+          />
+        </CodeProvider>
       )}
     </section>
   )
