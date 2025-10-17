@@ -1,5 +1,5 @@
-// src/components/Contact.jsx - VERSIÓN CORREGIDA
-import { useState, useEffect } from 'react'
+// src/components/Contact.jsx - CON CLOUDFLARE TURNSTILE
+import { useState, useEffect, useRef } from 'react'
 import Button from './ui/Button'
 import { SecurityManager, formRateLimiter } from '../utils/security'
 import { logger } from '../utils/logger'
@@ -9,11 +9,76 @@ export default function Contact(){
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
   const [csrfToken] = useState(() => SecurityManager.generateCSRFToken())
+  const [turnstileToken, setTurnstileToken] = useState(null)
+  const [turnstileLoaded, setTurnstileLoaded] = useState(false)
+  const turnstileRef = useRef(null)
+  const widgetIdRef = useRef(null)
 
-  // CORRECCIÓN: Usar useEffect en lugar de useState
   useEffect(() => {
     sessionStorage.setItem('csrf_token', csrfToken)
   }, [csrfToken])
+
+  // Inicializar Turnstile cuando el script esté cargado
+  useEffect(() => {
+    const initTurnstile = () => {
+      if (window.turnstile && turnstileRef.current && !widgetIdRef.current) {
+        try {
+          widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+            sitekey: '1x00000000000000000000AA', // Sitekey de prueba de Cloudflare
+            callback: (token) => {
+              setTurnstileToken(token)
+              logger.info('Turnstile token recibido')
+            },
+            'error-callback': () => {
+              setTurnstileToken(null)
+              logger.error('Error en Turnstile')
+            },
+            'expired-callback': () => {
+              setTurnstileToken(null)
+              logger.warn('Turnstile token expirado')
+            },
+            theme: 'light',
+            size: 'normal'
+          })
+          setTurnstileLoaded(true)
+          logger.info('Turnstile inicializado')
+        } catch (error) {
+          logger.error('Error inicializando Turnstile', error)
+        }
+      }
+    }
+
+    // Verificar si Turnstile ya está cargado
+    if (window.turnstile) {
+      initTurnstile()
+    } else {
+      // Esperar a que se cargue el script
+      const checkTurnstile = setInterval(() => {
+        if (window.turnstile) {
+          clearInterval(checkTurnstile)
+          initTurnstile()
+        }
+      }, 100)
+
+      // Timeout después de 10 segundos
+      setTimeout(() => clearInterval(checkTurnstile), 10000)
+
+      return () => clearInterval(checkTurnstile)
+    }
+  }, [])
+
+  // Resetear Turnstile después de envío exitoso
+  const resetTurnstile = () => {
+    if (window.turnstile && widgetIdRef.current) {
+      try {
+        window.turnstile.reset(widgetIdRef.current)
+        setTurnstileToken(null)
+        logger.info('Turnstile reseteado')
+      } catch (error) {
+        logger.error('Error reseteando Turnstile', error)
+      }
+    }
+  }
 
   // Función para validar el formulario en tiempo real
   function validateField(name, value) {
@@ -149,6 +214,13 @@ export default function Contact(){
       return
     }
 
+    // ✅ NUEVO: Verificar Turnstile token
+    if (!turnstileToken) {
+      setStatus({ type: 'error', msg: 'Por favor completa la verificación de seguridad (Turnstile)' })
+      logger.warn('Intento de envío sin token de Turnstile')
+      return
+    }
+
     // Validar formulario completo
     const validationErrors = validateForm(fd)
     setErrors(validationErrors)
@@ -207,7 +279,9 @@ export default function Contact(){
         from_name: nombre, 
         from_email: emailSanitized, 
         phone: phone || 'No proporcionado', 
-        message 
+        message,
+        // ✅ NUEVO: Agregar token de Turnstile
+        'cf-turnstile-response': turnstileToken
       }
       
       const res = await fetch('https://api.web3forms.com/submit', { 
@@ -237,6 +311,9 @@ export default function Contact(){
         // Incrementar contador de rate limiting
         formRateLimiter.increment(email)
         
+        // ✅ NUEVO: Resetear Turnstile
+        resetTurnstile()
+        
         logger.info('Formulario de contacto enviado', { email: emailSanitized })
         
         // Scroll al mensaje de éxito
@@ -254,7 +331,10 @@ export default function Contact(){
       setStatus({ 
         type: 'error', 
         msg: 'Hubo un problema al enviar. Intenta nuevamente o escríbenos directamente a contacto@proconing.cl' 
-      }) 
+      })
+      
+      // Resetear Turnstile en caso de error
+      resetTurnstile()
     }
   }
 
@@ -427,10 +507,29 @@ export default function Contact(){
                   </p>
                 </div>
               </div>
+
+              {/* ✅ NUEVO: Widget de Cloudflare Turnstile */}
+              <div className="flex flex-col items-center gap-2 py-3">
+                <div 
+                  ref={turnstileRef}
+                  className="cf-turnstile"
+                  data-sitekey="1x00000000000000000000AA"
+                />
+                {!turnstileLoaded && (
+                  <p className="text-xs text-gray-500">
+                    Cargando verificación de seguridad...
+                  </p>
+                )}
+                {turnstileLoaded && !turnstileToken && (
+                  <p className="text-xs text-blue-600">
+                    ✓ Por favor completa la verificación de seguridad
+                  </p>
+                )}
+              </div>
               
               <Button 
                 type="submit" 
-                disabled={status.type==='loading'} 
+                disabled={status.type==='loading' || !turnstileToken} 
                 className="mt-2 w-full justify-center rounded-xl"
               >
                 {status.type==='loading' ? (
@@ -495,6 +594,7 @@ export default function Contact(){
                 </div>
               </div>
             </div>
+          
           </aside>
         </div>
       </div>

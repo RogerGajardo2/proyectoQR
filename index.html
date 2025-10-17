@@ -23,12 +23,12 @@
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     
-    <!-- Content Security Policy - CORREGIDO PARA FIREBASE AUTH -->
+    <!-- Content Security Policy - ACTUALIZADO PARA TURNSTILE -->
     <meta 
       http-equiv="Content-Security-Policy" 
       content="
         default-src 'self';
-        script-src 'self' https://cdnjs.cloudflare.com https://apis.google.com https://www.gstatic.com;
+        script-src 'self' https://cdnjs.cloudflare.com https://apis.google.com https://www.gstatic.com https://challenges.cloudflare.com;
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: https: blob:;
         font-src 'self' data:;
@@ -41,13 +41,15 @@
           https://identitytoolkit.googleapis.com
           https://firestore.googleapis.com
           https://securetoken.googleapis.com
+          https://challenges.cloudflare.com
           wss://*.firebaseio.com;
         media-src 'self' blob:;
         object-src 'none';
         frame-src 'self' 
           https://*.firebaseapp.com 
           https://*.google.com 
-          https://accounts.google.com;
+          https://accounts.google.com
+          https://challenges.cloudflare.com;
         base-uri 'self';
         form-action 'self' https://api.web3forms.com;
         upgrade-insecure-requests;
@@ -56,17 +58,22 @@
     
     <!-- Preconnect to external domains -->
     <link rel="preconnect" href="https://api.web3forms.com" />
+    <link rel="preconnect" href="https://challenges.cloudflare.com" />
     <link rel="preconnect" href="https://firebase.googleapis.com" />
     <link rel="preconnect" href="https://apis.google.com" />
     <link rel="preconnect" href="https://www.gstatic.com" />
     
     <!-- DNS Prefetch -->
     <link rel="dns-prefetch" href="https://api.web3forms.com" />
+    <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
     <link rel="dns-prefetch" href="https://firebase.googleapis.com" />
     <link rel="dns-prefetch" href="https://apis.google.com" />
     
     <!-- Preload critical resources -->
     <link rel="preload" href="/resources/logo.png" as="image" type="image/png" />
+    
+    <!-- Cloudflare Turnstile Script -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   </head>
   <body class="bg-white text-text">
     <noscript>
