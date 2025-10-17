@@ -1,11 +1,10 @@
-// src/components/admin/AdminCodes/index.jsx - SOLUCIÓN COMPLETA
+// src/components/admin/AdminCodes/index.jsx - VERSIÓN MEJORADA CON useAuth
 import { useState, useEffect } from 'react'
-import { signOut, onAuthStateChanged } from 'firebase/auth'
-import { auth } from '../../../lib/firebase'
 import { loginRateLimiter } from '../../../utils/security'
 import { logger } from '../../../utils/logger'
 import { ReviewProvider, useReviews } from '../../../contexts/ReviewContext'
 import { CodeProvider, useCodes } from '../../../contexts/CodeContext'
+import { useAuth } from '../../../hooks/useAuth'
 
 import AdminLogin from './AdminLogin'
 import { AdminHeader, AdminTabs, ImportMessage } from './AdminComponents'
@@ -16,27 +15,58 @@ import ReviewsTab from './ReviewsTab'
 function DataLoader() {
   const { loadCodes, loading: codesLoading } = useCodes()
   const { loadReviews, loading: reviewsLoading } = useReviews()
+  const [dataLoaded, setDataLoaded] = useState(false)
+  const [loadError, setLoadError] = useState(null)
 
   useEffect(() => {
-    // Cargar datos cuando el componente se monta (usuario ya autenticado)
+    let isMounted = true
+
     const loadData = async () => {
+      if (dataLoaded) return
+
       try {
         logger.info('Cargando datos del admin...')
-        await Promise.all([
+        
+        // Cargar datos en paralelo con timeout
+        const loadPromise = Promise.all([
           loadCodes(),
           loadReviews()
         ])
-        logger.info('Datos cargados exitosamente')
+
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout cargando datos')), 15000)
+        )
+
+        await Promise.race([loadPromise, timeoutPromise])
+        
+        if (isMounted) {
+          setDataLoaded(true)
+          logger.info('Datos cargados exitosamente')
+        }
       } catch (error) {
-        logger.error('Error cargando datos del admin', error)
+        if (isMounted) {
+          // Ignorar errores de extensiones
+          if (error.message?.includes('message channel')) {
+            logger.debug('Error de extensión ignorado durante carga de datos')
+            setDataLoaded(true)
+            return
+          }
+
+          logger.error('Error cargando datos del admin', error)
+          setLoadError(error.message)
+        }
       }
     }
 
     loadData()
-  }, [loadCodes, loadReviews])
+
+    return () => {
+      isMounted = false
+    }
+  }, [loadCodes, loadReviews, dataLoaded])
 
   // Mostrar loading mientras cargan los datos iniciales
-  if (codesLoading || reviewsLoading) {
+  if ((codesLoading || reviewsLoading) && !dataLoaded) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="text-center">
@@ -47,7 +77,30 @@ function DataLoader() {
     )
   }
 
-  return null // El DataLoader no renderiza nada, solo carga datos
+  // Mostrar error si hubo problema
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Error al cargar datos</h2>
+          <p className="text-gray-600 mb-4">{loadError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return null // El DataLoader no renderiza nada una vez cargado
 }
 
 // Componente interno que usa los contexts
@@ -99,50 +152,87 @@ function AdminContent({ user, onLogout }) {
 }
 
 export default function AdminCodes() {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  // Escuchar cambios en el estado de autenticación
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
-      setLoading(false)
-      
-      if (currentUser) {
-        logger.info('Usuario autenticado', { email: currentUser.email })
-      } else {
-        logger.info('Usuario no autenticado')
-      }
-    })
-
-    return () => unsubscribe()
-  }, [])
+  const { user, loading, error: authError, logout, initialized } = useAuth()
+  const [showError, setShowError] = useState(false)
 
   // Limpiar rate limiter periódicamente
   useEffect(() => {
     const cleanup = setInterval(() => {
       loginRateLimiter.cleanup()
-    }, 5 * 60 * 1000)
+    }, 5 * 60 * 1000) // Cada 5 minutos
 
     return () => clearInterval(cleanup)
   }, [])
 
+  // Manejar errores de autenticación
+  useEffect(() => {
+    if (authError && initialized) {
+      // Solo mostrar errores que no sean de extensiones
+      const isExtensionError = authError.message?.includes('message channel') ||
+                              authError.message?.includes('Extension context')
+      
+      if (!isExtensionError) {
+        setShowError(true)
+        logger.error('Error de autenticación persistente', authError)
+      }
+    }
+  }, [authError, initialized])
+
   const handleLogout = async () => {
     try {
-      await signOut(auth)
-      logger.info('Logout exitoso')
+      const result = await logout()
+      if (!result.success) {
+        logger.error('Error al cerrar sesión', result.error)
+        alert('Hubo un error al cerrar sesión. Intenta nuevamente.')
+      }
     } catch (error) {
-      logger.error('Error al cerrar sesión', error)
+      logger.error('Error inesperado al cerrar sesión', error)
     }
   }
 
-  // Loading state
-  if (loading) {
+  // Loading state inicial
+  if (loading || !initialized) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
           <p className="mt-4 text-gray-600">Verificando autenticación...</p>
+          {loading && (
+            <p className="mt-2 text-xs text-gray-500">
+              Si esto tarda mucho, intenta recargar la página
+            </p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Error state (solo para errores no relacionados con extensiones)
+  if (showError && authError) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-white rounded-2xl shadow-xl p-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Error de Autenticación</h2>
+          <p className="text-gray-600 mb-6">
+            Hubo un problema verificando tu sesión. Por favor, intenta nuevamente.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Reintentar
+          </button>
+          <button
+            onClick={() => window.location.href = '/#/inicio'}
+            className="w-full mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Volver al inicio
+          </button>
         </div>
       </div>
     )
@@ -153,7 +243,7 @@ export default function AdminCodes() {
     return <AdminLogin />
   }
 
-  // Admin dashboard - Los providers están aquí, pero NO cargan datos automáticamente
+  // Admin dashboard - Los providers están aquí
   return (
     <CodeProvider>
       <ReviewProvider>

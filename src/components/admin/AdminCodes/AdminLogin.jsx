@@ -1,4 +1,4 @@
-// src/components/admin/AdminCodes/AdminLogin.jsx - VERSIÓN RESPONSIVA
+// src/components/admin/AdminCodes/AdminLogin.jsx - VERSIÓN MEJORADA
 import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../../../lib/firebase'
@@ -33,11 +33,43 @@ export default function AdminLogin() {
     setLoading(true)
 
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      // Usar un timeout para evitar bloqueos indefinidos
+      const loginPromise = signInWithEmailAndPassword(auth, email, password)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 15000)
+      )
+      
+      await Promise.race([loginPromise, timeoutPromise])
+      
       logger.info('Login exitoso', { email })
+      
+      // Pequeño delay para asegurar que el estado de auth se propague
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
     } catch (err) {
       logger.error('Error en login', err)
       loginRateLimiter.increment(email)
+      
+      // Ignorar errores de message channel
+      if (err.message && (
+        err.message.includes('message channel closed') ||
+        err.message.includes('Extension context')
+      )) {
+        logger.info('Error de extensión ignorado durante login')
+        // Esperar un momento y verificar si el login fue exitoso de todas formas
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Si después de esperar no hay error, probablemente el login funcionó
+        if (auth.currentUser) {
+          logger.info('Login completado a pesar del error de extensión')
+          return
+        }
+      }
+      
+      if (err.message === 'Timeout') {
+        setError('El inicio de sesión está tardando mucho. Por favor, verifica tu conexión.')
+        return
+      }
       
       switch (err.code) {
         case 'auth/invalid-credential':

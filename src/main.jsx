@@ -1,4 +1,4 @@
-// src/main.jsx - MEJORADO CON PROVIDERS Y ERROR HANDLING
+// src/main.jsx - MEJORADO CON SUPRESIÓN DE ERRORES DE EXTENSIONES
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
@@ -6,8 +6,56 @@ import App from './App'
 import './index.css'
 import { logger } from './utils/logger'
 
+// ============================================
+// SOLUCIÓN 1: Suprimir error conocido de Firebase Auth con extensiones
+// ============================================
+if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+  const originalAddListener = chrome.runtime.onMessage.addListener
+  chrome.runtime.onMessage.addListener = function(...args) {
+    try {
+      return originalAddListener.apply(this, args)
+    } catch (error) {
+      // Ignorar errores de message channel cerrado (causados por extensiones del navegador)
+      if (error.message && error.message.includes('message channel closed')) {
+        console.debug('[ProconIng] Error de message channel ignorado (extensión del navegador)')
+        return
+      }
+      throw error
+    }
+  }
+}
+
+// Suprimir warnings específicos de runtime en producción
+if (import.meta.env.PROD) {
+  const originalError = console.error
+  console.error = (...args) => {
+    const errorMessage = args[0]?.toString() || ''
+    
+    // Lista de errores conocidos que podemos ignorar
+    const ignoredErrors = [
+      'message channel closed',
+      'runtime.lastError',
+      'Extension context invalidated'
+    ]
+    
+    if (ignoredErrors.some(ignored => errorMessage.includes(ignored))) {
+      console.debug('[ProconIng] Error conocido ignorado:', errorMessage.substring(0, 100))
+      return
+    }
+    
+    originalError.apply(console, args)
+  }
+}
+
 // Error handler global
 window.addEventListener('error', (event) => {
+  // Ignorar errores de extensiones del navegador
+  if (event.message && event.message.includes('Extension context')) {
+    console.debug('[ProconIng] Error de extensión ignorado')
+    event.preventDefault()
+    return
+  }
+  
   logger.error('Error global capturado', {
     message: event.message,
     filename: event.filename,
@@ -19,13 +67,23 @@ window.addEventListener('error', (event) => {
 
 // Promise rejection handler
 window.addEventListener('unhandledrejection', (event) => {
+  // Ignorar rechazos relacionados con extensiones
+  const reason = event.reason?.toString() || ''
+  if (reason.includes('message channel') || reason.includes('Extension context')) {
+    console.debug('[ProconIng] Promise rejection de extensión ignorada')
+    event.preventDefault()
+    return
+  }
+  
   logger.error('Promise rechazada sin catch', {
     reason: event.reason,
     promise: event.promise
   })
   
-  // Prevenir el comportamiento por defecto
-  event.preventDefault()
+  // Prevenir el comportamiento por defecto solo para errores no críticos
+  if (!reason.includes('Firebase') && !reason.includes('Network')) {
+    event.preventDefault()
+  }
 })
 
 // Performance monitoring (opcional)
