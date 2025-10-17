@@ -1,5 +1,6 @@
-// src/components/ReviewModal.jsx - VERSIÓN OPTIMIZADA CON MEJOR RESPONSIVIDAD
+// src/components/ReviewModal.jsx - VERSIÓN CORREGIDA CON FIRESTORE
 import { useState, useEffect } from 'react'
+import { useCodes } from '../contexts/CodeContext'
 import Button from './ui/Button'
 import { SecurityManager, reviewRateLimiter } from '../utils/security'
 import { logger } from '../utils/logger'
@@ -17,8 +18,10 @@ export default function ReviewModal({ onClose, onSubmit }) {
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
   const [hoveredStar, setHoveredStar] = useState(0)
-  const [validCodes, setValidCodes] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // ✅ CORRECCIÓN: Usar CodeContext en lugar de localStorage
+  const { availableCodes, loading: codesLoading } = useCodes()
 
   // Bloquear scroll del body
   useEffect(() => {
@@ -28,51 +31,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
     }
   }, [])
 
-  // Cargar códigos disponibles
-  useEffect(() => {
-    const loadAvailableCodes = () => {
-      try {
-        const savedCodes = JSON.parse(localStorage.getItem('proconing_codes') || '[]')
-        const usedCodes = JSON.parse(localStorage.getItem('proconing_used_codes') || '[]')
-        
-        const available = savedCodes
-          .filter(c => !usedCodes.includes(c.code))
-          .map(c => c.code)
-        
-        setValidCodes(available)
-        logger.info('Códigos disponibles cargados', { count: available.length })
-      } catch (error) {
-        logger.error('Error cargando códigos', error)
-        setValidCodes([])
-      }
-    }
-
-    loadAvailableCodes()
-  }, [])
-
-  // [Resto de funciones de validación sin cambios...]
-  const isCodeUsed = (code) => {
-    const usedCodes = JSON.parse(localStorage.getItem('proconing_used_codes') || '[]')
-    return usedCodes.includes(code)
-  }
-
-  const markCodeAsUsed = (code) => {
-    const usedCodes = JSON.parse(localStorage.getItem('proconing_used_codes') || '[]')
-    usedCodes.push(code)
-    localStorage.setItem('proconing_used_codes', JSON.stringify(usedCodes))
-    logger.info('Código marcado como usado', { code })
-  }
-
-  const wasUsedRecently = (code) => {
-    const recentReviews = JSON.parse(localStorage.getItem('proconing_recent_submissions') || '[]')
-    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000
-    
-    return recentReviews.some(r => 
-      r.code === code && 
-      r.timestamp > fiveMinutesAgo
-    )
-  }
-
+  // Validación de campos
   const validateField = (name, value) => {
     let error = ''
 
@@ -149,30 +108,17 @@ export default function ReviewModal({ onClose, onSubmit }) {
       return
     }
 
-    if (!validCodes.includes(trimmedCode)) {
-      const allCodes = JSON.parse(localStorage.getItem('proconing_codes') || '[]')
-      const codeExists = allCodes.some(c => c.code === trimmedCode)
-      
-      if (codeExists && isCodeUsed(trimmedCode)) {
-        setCodeError('Este código ya ha sido utilizado')
-      } else if (codeExists) {
-        setCodeError('Este código no está disponible')
-      } else {
-        setCodeError('Código inválido')
-      }
+    // ✅ CORRECCIÓN: Validar contra availableCodes de Firestore
+    if (codesLoading) {
+      setCodeError('Cargando códigos... intenta nuevamente')
+      return
+    }
+
+    const isValid = availableCodes.some(c => c.code === trimmedCode)
+    
+    if (!isValid) {
+      setCodeError('Código inválido o ya usado')
       logger.warn('Intento de código inválido', { code: trimmedCode })
-      return
-    }
-
-    if (isCodeUsed(trimmedCode)) {
-      setCodeError('Este código ya ha sido utilizado')
-      logger.warn('Intento de código ya usado', { code: trimmedCode })
-      return
-    }
-
-    if (wasUsedRecently(trimmedCode)) {
-      setCodeError('Código usado recientemente. Espera unos minutos.')
-      logger.warn('Código usado recientemente', { code: trimmedCode })
       return
     }
 
@@ -245,20 +191,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
         code: trimmedCode
       }
 
-      const recentReviews = JSON.parse(localStorage.getItem('proconing_recent_submissions') || '[]')
-      recentReviews.push({
-        code: trimmedCode,
-        timestamp: Date.now()
-      })
-      
-      if (recentReviews.length > 100) {
-        recentReviews.splice(0, recentReviews.length - 100)
-      }
-      
-      localStorage.setItem('proconing_recent_submissions', JSON.stringify(recentReviews))
-
       reviewRateLimiter.increment(trimmedCode)
-      markCodeAsUsed(trimmedCode)
       onSubmit(review)
       
       logger.info('Reseña enviada', { code: trimmedCode, rating: review.rating })
@@ -311,7 +244,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
         className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header - Optimizado */}
+        {/* Header */}
         <div className="sticky top-0 bg-white border-b border-line px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between rounded-t-xl sm:rounded-t-2xl z-10">
           <h3 className="text-base sm:text-lg md:text-xl font-bold text-title truncate pr-2">
             {step === 1 ? 'Ingresa tu código' : 'Tu experiencia'}
@@ -328,7 +261,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
           </button>
         </div>
 
-        {/* Contenido - Optimizado */}
+        {/* Contenido */}
         <div className="p-4 sm:p-6">
           {step === 1 ? (
             // Paso 1: Código de acceso
@@ -342,10 +275,18 @@ export default function ReviewModal({ onClose, onSubmit }) {
                 <p className="text-text text-xs sm:text-sm md:text-base px-2">
                   Necesitas un código único que te fue proporcionado al finalizar tu proyecto.
                 </p>
-                {validCodes.length > 0 && (
+                {/* ✅ CORRECCIÓN: Mostrar códigos disponibles de Firestore */}
+                {!codesLoading && availableCodes.length > 0 && (
                   <div className="mt-2 sm:mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
                     <p className="text-xs sm:text-sm text-green-700 font-medium">
-                      ✓ {validCodes.length} código{validCodes.length !== 1 ? 's' : ''} disponible{validCodes.length !== 1 ? 's' : ''}
+                      ✓ {availableCodes.length} código{availableCodes.length !== 1 ? 's' : ''} disponible{availableCodes.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                )}
+                {codesLoading && (
+                  <div className="mt-2 sm:mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs sm:text-sm text-blue-700 font-medium">
+                      ⏳ Cargando códigos disponibles...
                     </p>
                   </div>
                 )}
@@ -371,6 +312,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   autoComplete="off"
                   aria-invalid={codeError ? 'true' : 'false'}
                   aria-describedby={codeError ? 'code-error' : 'code-help'}
+                  disabled={codesLoading}
                 />
                 {codeError ? (
                   <p id="code-error" className="text-red-500 text-xs sm:text-sm mt-2 flex items-center gap-1">
@@ -386,8 +328,12 @@ export default function ReviewModal({ onClose, onSubmit }) {
                 )}
               </div>
 
-              <Button type="submit" className="w-full justify-center text-sm sm:text-base py-2.5 sm:py-3">
-                Continuar
+              <Button 
+                type="submit" 
+                className="w-full justify-center text-sm sm:text-base py-2.5 sm:py-3"
+                disabled={codesLoading}
+              >
+                {codesLoading ? 'Cargando...' : 'Continuar'}
               </Button>
 
               <p className="text-xs text-gray-500 text-center">
@@ -395,7 +341,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
               </p>
             </form>
           ) : (
-            // Paso 2: Formulario de reseña
+            // Paso 2: Formulario de reseña (mantener igual)
             <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               {/* Nombre */}
               <div>

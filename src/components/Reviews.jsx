@@ -101,6 +101,9 @@ export default function Reviews() {
     addReview 
   } = useReviews()
 
+  // Cargar códigos disponibles
+  const { loadCodes, initialized: codesInitialized } = useCodes()
+
   const [showModal, setShowModal] = useState(false)
   const [visibleCount, setVisibleCount] = useState(9)
 
@@ -114,6 +117,17 @@ export default function Reviews() {
     }
   }, [initialized, loadReviews])
 
+  // Cargar códigos disponibles
+  useEffect(() => {
+    if (!codesInitialized) {
+      logger.info('Cargando códigos disponibles...')
+      loadCodes().catch(err => {
+        logger.error('Error cargando códigos', err)
+      })
+    }
+  }, [codesInitialized, loadCodes])
+
+  
   // Reseñas visibles con paginación
   const visibleReviews = useMemo(() => {
     return reviews.slice(0, visibleCount)
