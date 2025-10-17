@@ -183,12 +183,6 @@ export default function AdminLogin() {
           </button>
         </div>
 
-        {/* Security info */}
-        <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-500 text-center">
-            🔒 Conexión segura · Intentos limitados
-          </p>
-        </div>
       </div>
     </div>
   )
