@@ -1,115 +1,163 @@
-// src/components/admin/AdminCodes/index.jsx
-import { useState, useEffect } from 'react'
-import { signOut, onAuthStateChanged } from 'firebase/auth'
+// src/components/admin/AdminCodes/AdminLogin.jsx - VERSIÓN RESPONSIVA
+import { useState } from 'react'
+import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../../../lib/firebase'
 import { loginRateLimiter } from '../../../utils/security'
 import { logger } from '../../../utils/logger'
-import { ReviewProvider } from '../../../contexts/ReviewContext'
-import { CodeProvider } from '../../../contexts/CodeContext'
+import Button from '../../ui/Button'
 
-import AdminLogin from './AdminLogin'
-import { AdminHeader, AdminTabs, ImportMessage } from './AdminComponents'
-import CodesTab from './CodesTab'
-import ReviewsTab from './ReviewsTab'
+export default function AdminLogin() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-export default function AdminCodes() {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('codes')
-  const [importMessage, setImportMessage] = useState({ type: '', message: '' })
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setError('')
 
-  // Escuchar cambios en el estado de autenticación
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
-      setLoading(false)
-      
-      if (currentUser) {
-        logger.info('Usuario autenticado', currentUser.email)
-      } else {
-        logger.info('Usuario no autenticado')
-      }
-    })
+    if (!email || !password) {
+      setError('Por favor completa todos los campos')
+      return
+    }
 
-    return () => unsubscribe()
-  }, [])
+    const limitCheck = loginRateLimiter.checkLimit(email)
+    
+    if (!limitCheck.allowed) {
+      const minutes = Math.ceil((limitCheck.resetTime - Date.now()) / 60000)
+      setError(`Demasiados intentos. Intenta en ${minutes} minuto(s)`)
+      logger.warn('Rate limit alcanzado para login', { email })
+      return
+    }
 
-  // Limpiar rate limiter periódicamente
-  useEffect(() => {
-    const cleanup = setInterval(() => {
-      loginRateLimiter.cleanup()
-    }, 5 * 60 * 1000)
+    setLoading(true)
 
-    return () => clearInterval(cleanup)
-  }, [])
-
-  const handleLogout = async () => {
     try {
-      await signOut(auth)
-      showImportMessage('success', 'Sesión cerrada correctamente')
-      logger.info('Logout exitoso')
-    } catch (error) {
-      logger.error('Error al cerrar sesión', error)
-      showImportMessage('error', 'Error al cerrar sesión')
+      await signInWithEmailAndPassword(auth, email, password)
+      logger.info('Login exitoso', { email })
+    } catch (err) {
+      logger.error('Error en login', err)
+      loginRateLimiter.increment(email)
+      
+      switch (err.code) {
+        case 'auth/invalid-credential':
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+          setError('Credenciales incorrectas')
+          break
+        case 'auth/too-many-requests':
+          setError('Demasiados intentos. Intenta más tarde')
+          break
+        case 'auth/network-request-failed':
+          setError('Error de conexión. Verifica tu internet')
+          break
+        default:
+          setError('Error al iniciar sesión. Intenta nuevamente')
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
-  const showImportMessage = (type, message) => {
-    setImportMessage({ type, message })
-    setTimeout(() => {
-      setImportMessage({ type: '', message: '' })
-    }, 5000)
-  }
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full mb-3 sm:mb-4">
+            <svg className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Panel Admin</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">ProconIng</p>
+        </div>
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-          <p className="mt-4 text-gray-600">Verificando autenticación...</p>
+        {/* Formulario */}
+        <form onSubmit={handleLogin} className="space-y-4 sm:space-y-6">
+          {/* Email */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Correo electrónico
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@proconing.cl"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+              disabled={loading}
+              autoComplete="email"
+              required
+            />
+          </div>
+
+          {/* Password */}
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              Contraseña
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+              disabled={loading}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <p className="text-red-800 text-xs sm:text-sm">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Submit button */}
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full justify-center text-sm sm:text-base py-2.5 sm:py-3"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+                Iniciando sesión...
+              </span>
+            ) : 'Iniciar sesión'}
+          </Button>
+        </form>
+
+        {/* Footer */}
+        <div className="mt-4 sm:mt-6 text-center">
+          <button
+            onClick={() => window.location.href = '/#/inicio'}
+            className="text-xs sm:text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            ← Volver al sitio
+          </button>
+        </div>
+
+        {/* Security info */}
+        <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200">
+          <p className="text-xs text-gray-500 text-center">
+            🔒 Conexión segura · Intentos limitados
+          </p>
         </div>
       </div>
-    )
-  }
-
-  // Login screen - SOLO si NO está autenticado
-  if (!user) {
-    return <AdminLogin />
-  }
-
-  // Admin dashboard - SOLO si ESTÁ autenticado
-  return (
-    <CodeProvider>
-      <ReviewProvider>
-        <div className="min-h-screen bg-gray-100 p-4 md:p-8">
-          <div className="max-w-7xl mx-auto">
-            {/* Mensaje de importación */}
-            <ImportMessage message={importMessage} />
-
-            {/* Header */}
-            <AdminHeader 
-              user={user} 
-              onLogout={handleLogout} 
-            />
-
-            {/* Tabs */}
-            <AdminTabs 
-              activeTab={activeTab} 
-              onTabChange={setActiveTab} 
-            />
-
-            {/* Contenido según tab activo */}
-            <div className="mt-6">
-              {activeTab === 'codes' ? (
-                <CodesTab showImportMessage={showImportMessage} />
-              ) : (
-                <ReviewsTab showImportMessage={showImportMessage} />
-              )}
-            </div>
-          </div>
-        </div>
-      </ReviewProvider>
-    </CodeProvider>
+    </div>
   )
 }

@@ -1,5 +1,5 @@
-// src/contexts/ReviewContext.jsx - MEJORADO CON ERROR HANDLING
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+// src/contexts/ReviewContext.jsx - SOLUCIÓN DEFINITIVA
+import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import * as reviewService from '../services/reviewService'
 import { getErrorMessage } from '../utils/errorHandler'
 import { logger } from '../utils/logger'
@@ -8,22 +8,28 @@ const ReviewContext = createContext()
 
 export function ReviewProvider({ children }) {
   const [reviews, setReviews] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // Cambiado a false
   const [error, setError] = useState(null)
   const [stats, setStats] = useState({
     total: 0,
     average: 0,
     distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
   })
+  
+  const hasLoadedRef = useRef(false)
+  const isLoadingRef = useRef(false)
 
-  // Cargar reseñas al montar
-  useEffect(() => {
-    loadReviews()
-  }, [])
+  // ⚠️ IMPORTANTE: NO usar useEffect para cargar automáticamente
+  // Los datos se cargan SOLO cuando se llama a loadReviews() explícitamente
 
-  // Cargar reseñas desde Firestore
   const loadReviews = useCallback(async () => {
+    if (isLoadingRef.current) {
+      logger.info('Carga de reseñas ya en progreso, saltando...')
+      return
+    }
+
     try {
+      isLoadingRef.current = true
       setLoading(true)
       setError(null)
       
@@ -34,24 +40,26 @@ export function ReviewProvider({ children }) {
       
       setReviews(reviewsData)
       setStats(statsData)
+      hasLoadedRef.current = true
       
       logger.info('Reseñas cargadas en contexto', { count: reviewsData.length })
     } catch (err) {
       const errorMessage = getErrorMessage(err)
       logger.error('Error cargando reseñas en contexto', err)
       setError(errorMessage)
+      hasLoadedRef.current = false
+      throw err // Importante: propagar el error
     } finally {
       setLoading(false)
+      isLoadingRef.current = false
     }
   }, [])
 
-  // Agregar reseña
   const addReview = useCallback(async (reviewData) => {
     try {
       const newReview = await reviewService.addReview(reviewData)
       setReviews(prev => [newReview, ...prev])
       
-      // Recalcular estadísticas
       const statsData = await reviewService.getReviewStats()
       setStats(statsData)
       
@@ -64,7 +72,6 @@ export function ReviewProvider({ children }) {
     }
   }, [])
 
-  // Actualizar reseña
   const updateReview = useCallback(async (reviewId, updates) => {
     try {
       const updatedReview = await reviewService.updateReview(reviewId, updates)
@@ -84,14 +91,12 @@ export function ReviewProvider({ children }) {
     }
   }, [])
 
-  // Eliminar reseña
   const deleteReview = useCallback(async (reviewId, code) => {
     try {
       await reviewService.deleteReview(reviewId, code)
       
       setReviews(prev => prev.filter(review => review.id !== reviewId))
       
-      // Recalcular estadísticas
       const statsData = await reviewService.getReviewStats()
       setStats(statsData)
       
@@ -103,7 +108,6 @@ export function ReviewProvider({ children }) {
     }
   }, [])
 
-  // Obtener reseñas filtradas
   const getFilteredReviews = useCallback((filters) => {
     let filtered = [...reviews]
     
@@ -140,8 +144,8 @@ export function ReviewProvider({ children }) {
     return filtered
   }, [reviews])
 
-  // Retry en caso de error
   const retry = useCallback(() => {
+    hasLoadedRef.current = false
     loadReviews()
   }, [loadReviews])
 
@@ -165,7 +169,6 @@ export function ReviewProvider({ children }) {
   )
 }
 
-// Hook personalizado para usar el contexto
 export function useReviews() {
   const context = useContext(ReviewContext)
   

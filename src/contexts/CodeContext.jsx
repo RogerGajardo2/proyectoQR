@@ -1,5 +1,5 @@
-// src/contexts/CodeContext.jsx - MEJORADO CON ERROR HANDLING
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+// src/contexts/CodeContext.jsx - SOLUCIÓN DEFINITIVA
+import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import * as codeService from '../services/codeService'
 import { getErrorMessage } from '../utils/errorHandler'
 import { logger } from '../utils/logger'
@@ -10,17 +10,23 @@ export function CodeProvider({ children }) {
   const [codes, setCodes] = useState([])
   const [availableCodes, setAvailableCodes] = useState([])
   const [usedCodes, setUsedCodes] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // Cambiado a false
   const [error, setError] = useState(null)
+  
+  const hasLoadedRef = useRef(false)
+  const isLoadingRef = useRef(false)
 
-  // Cargar códigos al montar
-  useEffect(() => {
-    loadCodes()
-  }, [])
+  // ⚠️ IMPORTANTE: NO usar useEffect para cargar automáticamente
+  // Los datos se cargan SOLO cuando se llama a loadCodes() explícitamente
 
-  // Cargar todos los códigos
   const loadCodes = useCallback(async () => {
+    if (isLoadingRef.current) {
+      logger.info('Carga de códigos ya en progreso, saltando...')
+      return
+    }
+
     try {
+      isLoadingRef.current = true
       setLoading(true)
       setError(null)
       
@@ -33,6 +39,7 @@ export function CodeProvider({ children }) {
       setCodes(allCodes)
       setAvailableCodes(available)
       setUsedCodes(used)
+      hasLoadedRef.current = true
       
       logger.info('Códigos cargados en contexto', { 
         total: allCodes.length,
@@ -43,12 +50,14 @@ export function CodeProvider({ children }) {
       const errorMessage = getErrorMessage(err)
       logger.error('Error cargando códigos en contexto', err)
       setError(errorMessage)
+      hasLoadedRef.current = false
+      throw err // Importante: propagar el error
     } finally {
       setLoading(false)
+      isLoadingRef.current = false
     }
   }, [])
 
-  // Agregar código
   const addCode = useCallback(async (codeData) => {
     try {
       const newCode = await codeService.addCode(codeData)
@@ -65,7 +74,6 @@ export function CodeProvider({ children }) {
     }
   }, [])
 
-  // Eliminar código
   const deleteCode = useCallback(async (codeId) => {
     try {
       await codeService.deleteCode(codeId)
@@ -82,16 +90,14 @@ export function CodeProvider({ children }) {
     }
   }, [])
 
-  // Generar código aleatorio
   const generateCode = useCallback((prefix = 'PROC') => {
     return codeService.generateRandomCode(prefix)
   }, [])
 
-  // Generar códigos en lote
   const generateBulkCodes = useCallback(async (count, prefix) => {
     try {
       const result = await codeService.generateBulkCodes(count, prefix)
-      await loadCodes() // Recargar todos los códigos
+      await loadCodes()
       
       logger.info('Códigos generados en lote', { count: result.codes.length })
       return result
@@ -102,11 +108,10 @@ export function CodeProvider({ children }) {
     }
   }, [loadCodes])
 
-  // Importar códigos
   const importCodes = useCallback(async (codesData) => {
     try {
       const result = await codeService.importCodes(codesData)
-      await loadCodes() // Recargar todos los códigos
+      await loadCodes()
       
       logger.info('Códigos importados', { count: result.imported })
       return result
@@ -117,12 +122,10 @@ export function CodeProvider({ children }) {
     }
   }, [loadCodes])
 
-  // Validar código
   const validateCode = useCallback((code) => {
     return availableCodes.some(c => c.code === code)
   }, [availableCodes])
 
-  // Obtener estadísticas
   const getStats = useCallback(async () => {
     try {
       return await codeService.getCodeStats()
@@ -133,8 +136,8 @@ export function CodeProvider({ children }) {
     }
   }, [])
 
-  // Retry en caso de error
   const retry = useCallback(() => {
+    hasLoadedRef.current = false
     loadCodes()
   }, [loadCodes])
 
@@ -162,7 +165,6 @@ export function CodeProvider({ children }) {
   )
 }
 
-// Hook personalizado para usar el contexto
 export function useCodes() {
   const context = useContext(CodeContext)
   

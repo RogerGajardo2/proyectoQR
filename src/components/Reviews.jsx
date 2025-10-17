@@ -1,5 +1,5 @@
-// src/components/Reviews.jsx - ACTUALIZADO CON CONTEXT
-import { useState, useMemo, useCallback, memo } from 'react'
+// src/components/Reviews.jsx - ACTUALIZADO CON CARGA MANUAL
+import { useState, useMemo, useCallback, memo, useEffect } from 'react'
 import { useReviews } from '../contexts/ReviewContext'
 import Button from './ui/Button'
 import ReviewModal from './ReviewModal'
@@ -94,11 +94,23 @@ export default function Reviews() {
     loading, 
     error, 
     stats, 
+    initialized,
+    loadReviews,
     addReview 
   } = useReviews()
 
   const [showModal, setShowModal] = useState(false)
   const [visibleCount, setVisibleCount] = useState(9)
+
+  // Cargar reseñas al montar (acceso público permitido)
+  useEffect(() => {
+    if (!initialized) {
+      logger.info('Cargando reseñas públicas...')
+      loadReviews().catch(err => {
+        logger.error('Error cargando reseñas en componente público', err)
+      })
+    }
+  }, [initialized, loadReviews])
 
   // Reseñas visibles con paginación
   const visibleReviews = useMemo(() => {
@@ -123,7 +135,7 @@ export default function Reviews() {
     setVisibleCount(prev => Math.min(prev + 9, reviews.length))
   }, [reviews.length])
 
-  if (loading) {
+  if (loading && !initialized) {
     return (
       <section id="resenas" className="py-16 scroll-mt-24 bg-white">
         <div className="container">
@@ -142,7 +154,7 @@ export default function Reviews() {
         <div className="container">
           <div className="text-center py-12">
             <p className="text-red-600">Error al cargar reseñas: {error}</p>
-            <Button onClick={() => window.location.reload()} className="mt-4">
+            <Button onClick={() => loadReviews()} className="mt-4">
               Reintentar
             </Button>
           </div>

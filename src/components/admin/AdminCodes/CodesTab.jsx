@@ -1,4 +1,4 @@
-// src/components/admin/AdminCodes/CodesTab.jsx
+// src/components/admin/AdminCodes/CodesTab.jsx - VERSIÓN RESPONSIVA
 import { useState, useRef } from 'react'
 import { useCodes } from '../../../contexts/CodeContext'
 import Button from '../../ui/Button'
@@ -160,37 +160,52 @@ export default function CodesTab({ showImportMessage }) {
   return (
     <>
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <StatsCard label="Total de códigos" value={codes.length} />
         <StatsCard label="Códigos disponibles" value={availableCodes.length} variant="success" />
         <StatsCard label="Códigos usados" value={usedCodes.length} variant="danger" />
       </div>
 
       {/* Acciones */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Acciones</h2>
-        <div className="flex flex-wrap gap-3">
-          <Button onClick={() => setShowAddForm(!showAddForm)}>
-            {showAddForm ? 'Cancelar' : 'Agregar código'}
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Acciones</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3">
+          <Button 
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="w-full justify-center text-sm sm:text-base"
+          >
+            {showAddForm ? 'Cancelar' : '➕ Agregar'}
           </Button>
-          <Button onClick={() => {
-            setNewCode(generateCode())
-            setShowAddForm(true)
-          }} variant="outline">
-            Generar código aleatorio
+          <Button 
+            onClick={() => {
+              setNewCode(generateCode())
+              setShowAddForm(true)
+            }} 
+            variant="outline"
+            className="w-full justify-center text-sm sm:text-base"
+          >
+            🎲 Generar
           </Button>
-          <Button onClick={handleGenerateBulk} variant="outline">
-            Generar en lote
+          <Button 
+            onClick={handleGenerateBulk} 
+            variant="outline"
+            className="w-full justify-center text-sm sm:text-base"
+          >
+            📦 En lote
           </Button>
-          <Button onClick={handleExport} variant="outline">
-            Exportar códigos
+          <Button 
+            onClick={handleExport} 
+            variant="outline"
+            className="w-full justify-center text-sm sm:text-base"
+          >
+            💾 Exportar
           </Button>
           <Button 
             onClick={() => fileInputRef.current?.click()} 
             variant="outline"
-            className="bg-green-50 hover:bg-green-100 border-green-300"
+            className="w-full justify-center text-sm sm:text-base bg-green-50 hover:bg-green-100 border-green-300"
           >
-            📥 Importar códigos
+            📥 Importar
           </Button>
         </div>
 
@@ -203,109 +218,126 @@ export default function CodesTab({ showImportMessage }) {
         />
 
         {showAddForm && (
-          <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-            <h3 className="font-semibold text-gray-900 mb-3">Nuevo código</h3>
-            <div className="grid md:grid-cols-2 gap-4">
+          <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-50 rounded-xl">
+            <h3 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Nuevo código</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Código</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Código</label>
                 <input
                   type="text"
                   value={newCode}
                   onChange={(e) => setNewCode(e.target.value.toUpperCase())}
                   placeholder="PROC2024"
                   maxLength={50}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del cliente</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Nombre del cliente</label>
                 <input
                   type="text"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="Juan Pérez"
                   maxLength={100}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
-            <div className="mt-4">
-              <Button onClick={handleAddCode}>Guardar código</Button>
+            <div className="mt-3 sm:mt-4">
+              <Button 
+                onClick={handleAddCode}
+                className="w-full sm:w-auto text-sm sm:text-base"
+              >
+                Guardar código
+              </Button>
             </div>
           </div>
         )}
       </div>
 
       {/* Lista de códigos disponibles */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">
           Códigos disponibles ({availableCodes.length})
         </h2>
         {availableCodes.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Código</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cliente</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {availableCodes.map((code) => (
-                  <tr key={code.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono font-semibold text-blue-600">{code.code}</td>
-                    <td className="px-4 py-3 text-gray-900">{code.clientName}</td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => handleDeleteCode(code.id, code.code)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700">Código</th>
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700">Cliente</th>
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {availableCodes.map((code) => (
+                    <tr key={code.id} className="hover:bg-gray-50">
+                      <td className="px-3 sm:px-4 py-2 sm:py-3 font-mono text-xs sm:text-sm font-semibold text-blue-600 break-all">
+                        {code.code}
+                      </td>
+                      <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 break-words">
+                        {code.clientName}
+                      </td>
+                      <td className="px-3 sm:px-4 py-2 sm:py-3">
+                        <button
+                          onClick={() => handleDeleteCode(code.id, code.code)}
+                          className="text-red-600 hover:text-red-800 text-xs sm:text-sm font-medium"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-8">No hay códigos disponibles</p>
+          <p className="text-gray-500 text-center py-8 text-sm sm:text-base">No hay códigos disponibles</p>
         )}
       </div>
 
       {/* Lista de códigos usados */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">
           Códigos usados ({usedCodes.length})
         </h2>
         {usedCodes.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Código</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cliente</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {usedCodes.map((code) => (
-                  <tr key={code.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono font-semibold text-gray-600">{code.code}</td>
-                    <td className="px-4 py-3 text-gray-900">{code.clientName}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        Usado
-                      </span>
-                    </td>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700">Código</th>
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700">Cliente</th>
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700">Estado</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {usedCodes.map((code) => (
+                    <tr key={code.id} className="hover:bg-gray-50">
+                      <td className="px-3 sm:px-4 py-2 sm:py-3 font-mono text-xs sm:text-sm font-semibold text-gray-600 break-all">
+                        {code.code}
+                      </td>
+                      <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 break-words">
+                        {code.clientName}
+                      </td>
+                      <td className="px-3 sm:px-4 py-2 sm:py-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Usado
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-8">No hay códigos usados</p>
+          <p className="text-gray-500 text-center py-8 text-sm sm:text-base">No hay códigos usados</p>
         )}
       </div>
     </>
