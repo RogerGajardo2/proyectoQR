@@ -1,4 +1,4 @@
-// src/components/ReviewModal.jsx - VERSIÓN SEGURA SIN MOSTRAR INFO DE CÓDIGOS
+// src/components/ReviewModal.jsx - VERSIÓN CON VALIDACIÓN DE INTENTOS
 import { useState, useEffect } from 'react'
 import { useCodes } from '../contexts/CodeContext'
 import Button from './ui/Button'
@@ -9,6 +9,8 @@ export default function ReviewModal({ onClose, onSubmit }) {
   const [step, setStep] = useState(1)
   const [code, setCode] = useState('')
   const [codeError, setCodeError] = useState('')
+  const [failedAttempts, setFailedAttempts] = useState(0)
+  const [isBlocked, setIsBlocked] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     rating: 5,
@@ -20,15 +22,16 @@ export default function ReviewModal({ onClose, onSubmit }) {
   const [hoveredStar, setHoveredStar] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  // ✅ Cargar códigos silenciosamente en background
+  const MAX_ATTEMPTS = 5
+  
+  // Cargar códigos silenciosamente en background
   const { availableCodes, loading: codesLoading, loadCodes, initialized } = useCodes()
 
-  // ✅ Cargar códigos al montar (sin mostrar estado al usuario)
+  // Cargar códigos al montar
   useEffect(() => {
     if (!initialized) {
       loadCodes().catch(err => {
         logger.error('Error cargando códigos en modal', err)
-        // NO mostrar error al usuario, solo loggear
       })
     }
   }, [initialized, loadCodes])
@@ -99,8 +102,33 @@ export default function ReviewModal({ onClose, onSubmit }) {
     setErrors(prev => ({ ...prev, [name]: error }))
   }
 
+  const getCodeErrorMessage = (attempts) => {
+    const remainingAttempts = MAX_ATTEMPTS - attempts
+    
+    if (remainingAttempts <= 0) {
+      return '🔒 Has alcanzado el máximo de intentos permitidos. Por favor, contacta con nosotros para obtener un código válido.'
+    }
+    
+    if (remainingAttempts === 1) {
+      return `❌ Código inválido o ya utilizado. ⚠️ Este es tu último intento.`
+    }
+    
+    if (remainingAttempts <= 2) {
+      return `❌ Código inválido o ya utilizado. Te quedan ${remainingAttempts} intentos.`
+    }
+    
+    return `❌ Código inválido o ya utilizado. Verifica que esté escrito correctamente. Intentos restantes: ${remainingAttempts}`
+  }
+
   const handleCodeSubmit = (e) => {
     e.preventDefault()
+    
+    // Verificar si está bloqueado
+    if (isBlocked) {
+      setCodeError('🔒 Has alcanzado el máximo de intentos permitidos.')
+      return
+    }
+    
     const trimmedCode = SecurityManager.sanitizeInput(code.trim().toUpperCase(), 50)
 
     if (!trimmedCode) {
@@ -118,27 +146,42 @@ export default function ReviewModal({ onClose, onSubmit }) {
       return
     }
 
-    // ✅ VALIDAR código sin mostrar información sobre disponibilidad
     // Esperar a que los códigos estén cargados
     if (codesLoading || !initialized) {
       setCodeError('Validando código... intenta nuevamente')
       return
     }
 
-    // Validar contra códigos disponibles (sin revelar cantidad)
+    // Validar contra códigos disponibles
     const isValid = availableCodes && availableCodes.some(c => c.code === trimmedCode)
     
     if (!isValid) {
-      // ✅ Mensaje de error genérico - no revela información
-      setCodeError('Código inválido o ya usado')
+      const newAttempts = failedAttempts + 1
+      setFailedAttempts(newAttempts)
+      
+      // Verificar si se alcanzó el límite
+      if (newAttempts >= MAX_ATTEMPTS) {
+        setIsBlocked(true)
+        setCodeError('🔒 Has alcanzado el máximo de intentos permitidos. Por favor, contacta con nosotros.')
+        logger.warn('Máximo de intentos alcanzado', { 
+          code: trimmedCode.substring(0, 4) + '***',
+          attempts: newAttempts
+        })
+        return
+      }
+      
+      setCodeError(getCodeErrorMessage(newAttempts))
       logger.warn('Código inválido ingresado', { 
-        code: trimmedCode.substring(0, 4) + '***' // Log parcial por seguridad
+        code: trimmedCode.substring(0, 4) + '***',
+        attempts: newAttempts,
+        remaining: MAX_ATTEMPTS - newAttempts
       })
       return
     }
 
-    // Código válido - continuar
+    // Código válido - resetear intentos y continuar
     setCodeError('')
+    setFailedAttempts(0)
     setStep(2)
     logger.info('Código validado exitosamente')
   }
@@ -280,7 +323,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
         {/* Contenido */}
         <div className="p-4 sm:p-6">
           {step === 1 ? (
-            // ✅ Paso 1: Código de acceso - SIN mostrar información de disponibilidad
+            // Paso 1: Código de acceso
             <form onSubmit={handleCodeSubmit} className="space-y-3 sm:space-y-4">
               <div className="text-center mb-4 sm:mb-6">
                 <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full mb-2 sm:mb-3">
@@ -292,7 +335,35 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   Necesitas un código único que te fue proporcionado al finalizar tu proyecto.
                 </p>
                 
-                {/* ✅ ELIMINADO: Todo el bloque que mostraba estado de carga y disponibilidad de códigos */}
+                {/* Contador de intentos */}
+                {failedAttempts > 0 && !isBlocked && (
+                  <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-xs sm:text-sm text-yellow-800">
+                      ⚠️ Intentos fallidos: {failedAttempts} de {MAX_ATTEMPTS}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Mensaje de bloqueo */}
+                {isBlocked && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-xs sm:text-sm text-red-800 font-semibold">
+                      🔒 Cuenta bloqueada
+                    </p>
+                    <p className="text-xs text-red-700 mt-1">
+                      Has alcanzado el máximo de intentos permitidos.
+                    </p>
+                    <p className="text-xs text-red-600 mt-2">
+                      Por favor, contacta con nosotros para obtener un código válido:
+                    </p>
+                    <a 
+                      href="mailto:contacto@proconing.cl" 
+                      className="text-xs text-blue-600 hover:text-blue-800 underline mt-1 inline-block"
+                    >
+                      contacto@proconing.cl
+                    </a>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -310,19 +381,22 @@ export default function ReviewModal({ onClose, onSubmit }) {
                   placeholder="Ej: PROC2024"
                   className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg sm:rounded-xl border ${
                     codeError ? 'border-red-500 bg-red-50' : 'border-line'
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono transition-colors`}
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono transition-colors ${
+                    isBlocked ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                   maxLength={50}
                   autoComplete="off"
+                  disabled={isBlocked}
                   aria-invalid={codeError ? 'true' : 'false'}
                   aria-describedby={codeError ? 'code-error' : 'code-help'}
                 />
                 {codeError ? (
-                  <p id="code-error" className="text-red-500 text-xs sm:text-sm mt-2 flex items-center gap-1">
-                    <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <div id="code-error" className="text-red-600 text-xs sm:text-sm mt-2 flex items-start gap-1 p-2 bg-red-50 rounded">
+                    <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
-                    {codeError}
-                  </p>
+                    <span>{codeError}</span>
+                  </div>
                 ) : (
                   <p id="code-help" className="text-gray-500 text-xs mt-2">
                     Solo letras mayúsculas y números
@@ -333,12 +407,13 @@ export default function ReviewModal({ onClose, onSubmit }) {
               <Button 
                 type="submit" 
                 className="w-full justify-center text-sm sm:text-base py-2.5 sm:py-3"
+                disabled={isBlocked}
               >
-                Continuar
+                {isBlocked ? 'Bloqueado' : 'Continuar'}
               </Button>
 
               <p className="text-xs text-gray-500 text-center">
-                ¿No tienes un código? Contáctanos.
+                ¿No tienes un código? <a href="mailto:contacto@proconing.cl" className="text-blue-600 hover:text-blue-800 underline">Contáctanos</a>
               </p>
             </form>
           ) : (
