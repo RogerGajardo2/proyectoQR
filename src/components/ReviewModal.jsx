@@ -1,4 +1,4 @@
-// src/components/ReviewModal.jsx - VERSIÓN OPTIMIZADA Y RESPONSIVA
+// src/components/ReviewModal.jsx - VERSIÓN OPTIMIZADA CON MEJOR RESPONSIVIDAD
 import { useState, useEffect } from 'react'
 import Button from './ui/Button'
 import { SecurityManager, reviewRateLimiter } from '../utils/security'
@@ -50,7 +50,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
     loadAvailableCodes()
   }, [])
 
-  // Validaciones y funciones auxiliares (sin cambios en la lógica)
+  // [Resto de funciones de validación sin cambios...]
   const isCodeUsed = (code) => {
     const usedCodes = JSON.parse(localStorage.getItem('proconing_used_codes') || '[]')
     return usedCodes.includes(code)
@@ -282,11 +282,11 @@ export default function ReviewModal({ onClose, onSubmit }) {
             }}
             onMouseEnter={() => setHoveredStar(star)}
             onMouseLeave={() => setHoveredStar(0)}
-            className="transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded touch-manipulation"
+            className="transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded touch-manipulation p-1"
             aria-label={`${star} estrellas`}
           >
             <svg
-              className={`w-8 h-8 sm:w-10 sm:h-10 ${
+              className={`w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 ${
                 star <= (hoveredStar || formData.rating)
                   ? 'text-yellow-400'
                   : 'text-gray-300'
@@ -311,9 +311,9 @@ export default function ReviewModal({ onClose, onSubmit }) {
         className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header - Responsivo */}
+        {/* Header - Optimizado */}
         <div className="sticky top-0 bg-white border-b border-line px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between rounded-t-xl sm:rounded-t-2xl z-10">
-          <h3 className="text-lg sm:text-xl font-bold text-title truncate pr-2">
+          <h3 className="text-base sm:text-lg md:text-xl font-bold text-title truncate pr-2">
             {step === 1 ? 'Ingresa tu código' : 'Tu experiencia'}
           </h3>
           <button
@@ -328,7 +328,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
           </button>
         </div>
 
-        {/* Contenido */}
+        {/* Contenido - Optimizado */}
         <div className="p-4 sm:p-6">
           {step === 1 ? (
             // Paso 1: Código de acceso
@@ -339,7 +339,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                   </svg>
                 </div>
-                <p className="text-text text-sm sm:text-base px-2">
+                <p className="text-text text-xs sm:text-sm md:text-base px-2">
                   Necesitas un código único que te fue proporcionado al finalizar tu proyecto.
                 </p>
                 {validCodes.length > 0 && (
@@ -352,7 +352,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
               </div>
 
               <div>
-                <label htmlFor="code" className="block font-semibold text-title mb-2 text-sm sm:text-base">
+                <label htmlFor="code" className="block font-semibold text-title mb-2 text-xs sm:text-sm md:text-base">
                   Código de acceso <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -399,7 +399,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
             <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               {/* Nombre */}
               <div>
-                <label htmlFor="name" className="block font-semibold text-title mb-2 text-sm sm:text-base">
+                <label htmlFor="name" className="block font-semibold text-title mb-2 text-xs sm:text-sm md:text-base">
                   Tu nombre <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -428,7 +428,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
 
               {/* Rating */}
               <div>
-                <label className="block font-semibold text-title mb-2 sm:mb-3 text-center text-sm sm:text-base">
+                <label className="block font-semibold text-title mb-2 sm:mb-3 text-center text-xs sm:text-sm md:text-base">
                   Calificación <span className="text-red-500">*</span>
                 </label>
                 <StarInput />
@@ -443,7 +443,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
 
               {/* Comentario */}
               <div>
-                <label htmlFor="comment" className="block font-semibold text-title mb-2 text-sm sm:text-base">
+                <label htmlFor="comment" className="block font-semibold text-title mb-2 text-xs sm:text-sm md:text-base">
                   Tu reseña <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -480,7 +480,7 @@ export default function ReviewModal({ onClose, onSubmit }) {
 
               {/* Proyecto (opcional) */}
               <div>
-                <label htmlFor="project" className="block font-semibold text-title mb-2 text-sm sm:text-base">
+                <label htmlFor="project" className="block font-semibold text-title mb-2 text-xs sm:text-sm md:text-base">
                   Proyecto (opcional)
                 </label>
                 <input
