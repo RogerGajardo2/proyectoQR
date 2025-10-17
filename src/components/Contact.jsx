@@ -1,4 +1,4 @@
-// src/components/Contact.jsx - CON CLOUDFLARE TURNSTILE
+// src/components/Contact.jsx - CON HCAPTCHA (Web3Forms nativo)
 import { useState, useEffect, useRef } from 'react'
 import Button from './ui/Button'
 import { SecurityManager, formRateLimiter } from '../utils/security'
@@ -9,73 +9,73 @@ export default function Contact(){
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
   const [csrfToken] = useState(() => SecurityManager.generateCSRFToken())
-  const [turnstileToken, setTurnstileToken] = useState(null)
-  const [turnstileLoaded, setTurnstileLoaded] = useState(false)
-  const turnstileRef = useRef(null)
+  const [hcaptchaToken, setHcaptchaToken] = useState(null)
+  const [hcaptchaLoaded, setHcaptchaLoaded] = useState(false)
+  const hcaptchaRef = useRef(null)
   const widgetIdRef = useRef(null)
 
   useEffect(() => {
     sessionStorage.setItem('csrf_token', csrfToken)
   }, [csrfToken])
 
-  // Inicializar Turnstile cuando el script esté cargado
+  // Inicializar hCaptcha cuando el script esté cargado
   useEffect(() => {
-    const initTurnstile = () => {
-      if (window.turnstile && turnstileRef.current && !widgetIdRef.current) {
+    const initHcaptcha = () => {
+      if (window.hcaptcha && hcaptchaRef.current && !widgetIdRef.current) {
         try {
-          widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
-            sitekey: '1x00000000000000000000AA', // Sitekey de prueba de Cloudflare
+          widgetIdRef.current = window.hcaptcha.render(hcaptchaRef.current, {
+            sitekey: '50b2fe65-b00b-4b9e-ad62-3ba471098be2', // Sitekey de prueba de hCaptcha
             callback: (token) => {
-              setTurnstileToken(token)
-              logger.info('Turnstile token recibido')
+              setHcaptchaToken(token)
+              logger.info('hCaptcha token recibido')
             },
             'error-callback': () => {
-              setTurnstileToken(null)
-              logger.error('Error en Turnstile')
+              setHcaptchaToken(null)
+              logger.error('Error en hCaptcha')
             },
             'expired-callback': () => {
-              setTurnstileToken(null)
-              logger.warn('Turnstile token expirado')
+              setHcaptchaToken(null)
+              logger.warn('hCaptcha token expirado')
             },
             theme: 'light',
             size: 'normal'
           })
-          setTurnstileLoaded(true)
-          logger.info('Turnstile inicializado')
+          setHcaptchaLoaded(true)
+          logger.info('hCaptcha inicializado')
         } catch (error) {
-          logger.error('Error inicializando Turnstile', error)
+          logger.error('Error inicializando hCaptcha', error)
         }
       }
     }
 
-    // Verificar si Turnstile ya está cargado
-    if (window.turnstile) {
-      initTurnstile()
+    // Verificar si hCaptcha ya está cargado
+    if (window.hcaptcha) {
+      initHcaptcha()
     } else {
       // Esperar a que se cargue el script
-      const checkTurnstile = setInterval(() => {
-        if (window.turnstile) {
-          clearInterval(checkTurnstile)
-          initTurnstile()
+      const checkHcaptcha = setInterval(() => {
+        if (window.hcaptcha) {
+          clearInterval(checkHcaptcha)
+          initHcaptcha()
         }
       }, 100)
 
       // Timeout después de 10 segundos
-      setTimeout(() => clearInterval(checkTurnstile), 10000)
+      setTimeout(() => clearInterval(checkHcaptcha), 10000)
 
-      return () => clearInterval(checkTurnstile)
+      return () => clearInterval(checkHcaptcha)
     }
   }, [])
 
-  // Resetear Turnstile después de envío exitoso
-  const resetTurnstile = () => {
-    if (window.turnstile && widgetIdRef.current) {
+  // Resetear hCaptcha después de envío exitoso
+  const resetHcaptcha = () => {
+    if (window.hcaptcha && widgetIdRef.current !== null) {
       try {
-        window.turnstile.reset(widgetIdRef.current)
-        setTurnstileToken(null)
-        logger.info('Turnstile reseteado')
+        window.hcaptcha.reset(widgetIdRef.current)
+        setHcaptchaToken(null)
+        logger.info('hCaptcha reseteado')
       } catch (error) {
-        logger.error('Error reseteando Turnstile', error)
+        logger.error('Error reseteando hCaptcha', error)
       }
     }
   }
@@ -214,10 +214,10 @@ export default function Contact(){
       return
     }
 
-    // ✅ NUEVO: Verificar Turnstile token
-    if (!turnstileToken) {
-      setStatus({ type: 'error', msg: 'Por favor completa la verificación de seguridad (Turnstile)' })
-      logger.warn('Intento de envío sin token de Turnstile')
+    // ✅ Verificar hCaptcha token
+    if (!hcaptchaToken) {
+      setStatus({ type: 'error', msg: 'Por favor completa la verificación de seguridad (hCaptcha)' })
+      logger.warn('Intento de envío sin token de hCaptcha')
       return
     }
 
@@ -280,8 +280,8 @@ export default function Contact(){
         from_email: emailSanitized, 
         phone: phone || 'No proporcionado', 
         message,
-        // ✅ NUEVO: Agregar token de Turnstile
-        'cf-turnstile-response': turnstileToken
+        // ✅ Agregar token de hCaptcha
+        'h-captcha-response': hcaptchaToken
       }
       
       const res = await fetch('https://api.web3forms.com/submit', { 
@@ -311,8 +311,8 @@ export default function Contact(){
         // Incrementar contador de rate limiting
         formRateLimiter.increment(email)
         
-        // ✅ NUEVO: Resetear Turnstile
-        resetTurnstile()
+        // ✅ Resetear hCaptcha
+        resetHcaptcha()
         
         logger.info('Formulario de contacto enviado', { email: emailSanitized })
         
@@ -333,8 +333,8 @@ export default function Contact(){
         msg: 'Hubo un problema al enviar. Intenta nuevamente o escríbenos directamente a contacto@proconing.cl' 
       })
       
-      // Resetear Turnstile en caso de error
-      resetTurnstile()
+      // Resetear hCaptcha en caso de error
+      resetHcaptcha()
     }
   }
 
@@ -508,19 +508,19 @@ export default function Contact(){
                 </div>
               </div>
 
-              {/* ✅ NUEVO: Widget de Cloudflare Turnstile */}
+              {/* ✅ Widget de hCaptcha */}
               <div className="flex flex-col items-center gap-2 py-3">
                 <div 
-                  ref={turnstileRef}
-                  className="cf-turnstile"
-                  data-sitekey="1x00000000000000000000AA"
+                  ref={hcaptchaRef}
+                  className="h-captcha"
+                  data-sitekey="c1badf3e-d56c-4d60-b8be-df20408cdccc"
                 />
-                {!turnstileLoaded && (
+                {!hcaptchaLoaded && (
                   <p className="text-xs text-gray-500">
                     Cargando verificación de seguridad...
                   </p>
                 )}
-                {turnstileLoaded && !turnstileToken && (
+                {hcaptchaLoaded && !hcaptchaToken && (
                   <p className="text-xs text-blue-600">
                     ✓ Por favor completa la verificación de seguridad
                   </p>
@@ -529,7 +529,7 @@ export default function Contact(){
               
               <Button 
                 type="submit" 
-                disabled={status.type==='loading' || !turnstileToken} 
+                disabled={status.type==='loading' || !hcaptchaToken} 
                 className="mt-2 w-full justify-center rounded-xl"
               >
                 {status.type==='loading' ? (
